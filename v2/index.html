@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#11102a">
+<meta name="theme-color" content="#0b0b0b">
 <meta name="mobile-web-app-capable" content="yes">
 <title>PLUM ♥ SANNAMY OTHELLO</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8" shape-rendering="crispEdges"><rect width="8" height="8" fill="%230d0d0d"/><rect x="2" y="1" width="4" height="6" fill="%238d3fc0"/><rect x="1" y="2" width="6" height="4" fill="%238d3fc0"/><rect x="2" y="2" width="2" height="1" fill="%23c07ce8"/></svg>'>
@@ -12,9 +12,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#11102a;
-    --black:#0d0d0d;
-    --line:#2a2a2a;
+    --bg:#0b0b0b;
+    --black:#0b0b0b;
+    --line:#e8e6da;
     --gold:#e8b830;
     --gold-dark:#8a6a10;
     --plum:#8d3fc0;
@@ -43,11 +43,11 @@
   h1 svg{width:14px;height:14px}
   .sub{font-size:8px;color:var(--gold);margin-top:6px;text-align:center;letter-spacing:2px}
 
-  .scores{display:flex;align-items:flex-start;gap:10px;margin-top:4px}
-  .pcol{display:flex;flex-direction:column;align-items:center;gap:7px}
+  .scores{display:flex;align-items:flex-start;gap:10px;margin-top:18px}
+  .pcol{display:flex;flex-direction:column;align-items:center;gap:14px}
   .side{display:flex;align-items:center;gap:6px;font-size:13px;padding:8px 7px;
-    border:3px solid #2a2950;background:#1a1938}
-  .side.active{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)}
+    border:2px solid #2a2950;background:#1a1938}
+  .side.active{border-color:var(--gold)}
   .side svg{width:14px;height:14px}
   .vs{font-size:7px;color:#6a6890;align-self:center}
   .bigscore{font-size:18px;color:var(--white)}
@@ -63,8 +63,7 @@
     background:var(--line);
     gap:2px;padding:2px;
   }
-  .cell{background:var(--black);position:relative;
-    box-shadow:inset -3px -3px 0 #000, inset 2px 2px 0 #1e1e1e;}
+  .cell{background:var(--black);position:relative}
   .cell .disc{position:absolute;inset:12%;display:none}
   .cell .disc.on{display:block}
   .cell .disc svg{width:100%;height:100%;display:block}
@@ -105,7 +104,6 @@
   .btn.big svg{width:18px;height:18px}
   .btn.plumbtn{background:var(--plum);color:#fff;box-shadow:0 4px 0 #4d1675, inset -3px -3px 0 #6f2a9e, inset 3px 3px 0 var(--plum-lite)}
   .btn.pinkbtn{background:var(--pink);color:#5a1030;box-shadow:0 4px 0 #b65387, inset -3px -3px 0 #d985ab, inset 3px 3px 0 var(--pink-lite)}
-  .btn.bluebtn{background:#4a6ad8;color:#fff;box-shadow:0 4px 0 #243a8a, inset -3px -3px 0 #3a55b0, inset 3px 3px 0 #7e98f0}
 
   .screen{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;flex-direction:column;
     align-items:center;justify-content:center;gap:22px;padding:20px;text-align:center}
@@ -113,21 +111,21 @@
   .screen h2{font-size:11px;line-height:2;color:var(--gold)}
   .screen .small{font-size:7px;color:#6a6890;line-height:1.9;max-width:300px}
 
-  /* high score page */
-  #scorespage{gap:16px}
-  #scorespage .crown svg{width:36px;height:22px}
-  .tallylabel{font-size:7px;color:#6a6890;letter-spacing:1px}
-  #tally{font-size:13px;display:flex;align-items:center;gap:8px}
-  #tally svg{width:14px;height:14px}
-  #histlist{overflow-y:auto;max-height:46dvh;display:flex;flex-direction:column;gap:10px;
-    width:min(330px,92vw);padding:2px}
-  .hrow{border:3px solid #2a2950;background:#1a1938;padding:9px 8px;display:flex;
-    flex-direction:column;gap:7px;flex-shrink:0}
+  /* high scores under the board */
+  #scoresec{width:calc(8*var(--cell) + 18px);max-width:94vw;display:flex;
+    flex-direction:column;gap:8px;flex:1;min-height:0;margin-top:2px}
+  .shead{display:flex;justify-content:space-between;align-items:center;
+    font-size:8px;color:var(--gold);letter-spacing:1px}
+  #tally{font-size:9px;display:flex;align-items:center;gap:5px;color:var(--white)}
+  #tally svg{width:11px;height:11px}
+  #histlist{overflow-y:auto;display:flex;flex-direction:column;gap:6px;flex:1;min-height:0}
+  .hrow{border:2px solid #2a2950;background:#15142e;padding:7px 9px;display:flex;
+    align-items:center;justify-content:space-between;flex-shrink:0}
   .hdate{font-size:7px;color:#6a6890;letter-spacing:1px}
-  .hscore{font-size:11px;display:flex;align-items:center;justify-content:center;gap:7px}
-  .hscore svg{width:13px;height:13px}
-  .hscore .mini svg{width:15px;height:9px}
-  .hempty{font-size:8px;color:#6a6890;line-height:2}
+  .hscore{font-size:9px;display:flex;align-items:center;gap:5px}
+  .hscore svg{width:11px;height:11px}
+  .hscore .mini svg{width:13px;height:8px}
+  .hempty{font-size:7px;color:#6a6890;line-height:2;text-align:center;padding:6px 0}
 
   #modal{position:fixed;inset:0;background:rgba(10,9,30,.8);z-index:60;display:flex;
     align-items:center;justify-content:center}
@@ -146,7 +144,7 @@
 
 <header style="display:flex;flex-direction:column;align-items:center">
   <h1>MR.PLUM <span id="heart"></span> SANNAMY</h1>
-  <div class="sub">* OTHELLO V2 *</div>
+  <div class="sub">* OTHELLO *</div>
 </header>
 
 <div class="scores">
@@ -178,25 +176,20 @@
 <footer>
   <span class="led off" id="link">LINK...</span>
   <button class="btn" id="btnNew" style="font-size:8px;padding:9px 10px">NEW GAME</button>
-  <button class="btn bluebtn" id="btnScores" style="font-size:8px;padding:9px 10px">SCORES</button>
 </footer>
+
+<section id="scoresec">
+  <div class="shead"><span>HIGH SCORES</span><span id="tally"></span></div>
+  <div id="histlist"></div>
+</section>
 
 <div class="screen hidden" id="select">
   <h1>MR.PLUM <span id="heart2"></span> SANNAMY</h1>
-  <div class="sub">* OTHELLO V2 *</div>
+  <div class="sub">* OTHELLO *</div>
   <h2>WHO ARE YOU?</h2>
   <button class="btn big plumbtn" id="pickP"><span id="iconPickP"></span>MR. PLUM</button>
   <button class="btn big pinkbtn" id="pickS"><span id="iconPickS"></span>SANNAMY</button>
   <div class="small">YOUR CHOICE IS SAVED ON THIS PHONE.<br>PICK A DIFFERENT PLAYER ON EACH PHONE!</div>
-</div>
-
-<div class="screen hidden" id="scorespage">
-  <span class="crown" id="crown2"></span>
-  <h2>HIGH SCORES</h2>
-  <div class="tallylabel">TOTAL WINS</div>
-  <div id="tally"></div>
-  <div id="histlist"></div>
-  <button class="btn" id="btnBack">BACK</button>
 </div>
 
 <div id="modal" class="hidden">
@@ -270,7 +263,6 @@ document.getElementById('iconS').innerHTML  = DISC_SVG.S;
 document.getElementById('iconPickP').innerHTML = DISC_SVG.P;
 document.getElementById('iconPickS').innerHTML = DISC_SVG.S;
 document.getElementById('crown').innerHTML  = CROWN_SVG;
-document.getElementById('crown2').innerHTML = CROWN_SVG;
 
 /* ---------------- othello rules ---------------- */
 const DIRS = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
@@ -354,7 +346,7 @@ function renderScoresPage(){
   const ws = history.filter(e=>e.w==='S').length;
   tallyEl.innerHTML = DISC_SVG.P + ' ' + z2(wp) + ' - ' + z2(ws) + ' ' + DISC_SVG.S;
   if(!history.length){
-    histEl.innerHTML = '<div class="hempty">NO GAMES FINISHED YET!<br>GO PLAY!</div>';
+    histEl.innerHTML = '<div class="hempty">NO GAMES FINISHED YET! GO PLAY!</div>';
     return;
   }
   histEl.innerHTML = history.map(e =>
@@ -599,13 +591,6 @@ function pick(role){
 }
 document.getElementById('pickP').addEventListener('click', ()=>pick('P'));
 document.getElementById('pickS').addEventListener('click', ()=>pick('S'));
-
-const scoresPageEl = document.getElementById('scorespage');
-document.getElementById('btnScores').addEventListener('click', ()=>{
-  renderScoresPage();
-  scoresPageEl.classList.remove('hidden');
-});
-document.getElementById('btnBack').addEventListener('click', ()=>scoresPageEl.classList.add('hidden'));
 
 const modalEl = document.getElementById('modal');
 document.getElementById('btnNew').addEventListener('click', ()=>modalEl.classList.remove('hidden'));
