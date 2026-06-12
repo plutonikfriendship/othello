@@ -3,6 +3,20 @@
 A two-phone Othello/Reversi game for Mr. Plum and Sannamy. 8-bit NES style,
 real-time sync, no accounts, no app store — just one HTML file.
 
+## Versions
+
+- **V1** — `index.html` → `https://plutonikfriendship.github.io/othello/`
+  Green board with a wooden frame, CRT scanlines.
+- **V2** — `v2/index.html` → `https://plutonikfriendship.github.io/othello/v2/`
+  Near-black board without a frame, no scanlines, bigger player cards with the
+  score shown underneath, and a synced HIGH SCORES page that records the date,
+  time and final score of every finished game (kept on both phones, last 50
+  games). V2 also accepts `?room=anything` in the URL to play in a different
+  private room without editing the file.
+
+Both versions use the same room channel, so a game started in V1 continues
+seamlessly in V2 and vice versa.
+
 ## How it works
 
 - The whole game is **one file**: `index.html`. There is no server to run.
