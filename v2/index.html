@@ -54,11 +54,12 @@
   .onl.on{visibility:visible}
   .vs{font-size:8px;color:#6a6890}
   .bigscore{font-size:18px;color:var(--white)}
+  .bigscore.plum{color:var(--plum-lite)}
+  .bigscore.orange{color:var(--pink)}
+  .side.active .pname, .bigscore.turn{animation:blink 1s steps(2) infinite}
   @keyframes blink{50%{opacity:0}}
 
-  #status{font-size:10px;min-height:14px;text-align:center;color:var(--white);margin-top:16px}
-  #status.mine{color:var(--gold)}
-  #substatus{font-size:7px;min-height:9px;color:var(--pink);text-align:center}
+  #substatus{font-size:7px;min-height:9px;color:var(--pink);text-align:center;margin-top:14px}
 
   #boardwrap{position:relative}
   #board{
@@ -112,9 +113,10 @@
 
   /* high scores under the board */
   #scoresec{width:calc(8*var(--cell) + 18px);max-width:94vw;display:flex;
-    flex-direction:column;gap:8px;flex:1;min-height:0;margin-top:2px}
+    flex-direction:column;gap:8px;flex:1;min-height:0;margin-top:20px}
   .shead{display:flex;justify-content:space-between;align-items:center;
-    font-size:8px;color:var(--gold);letter-spacing:1px}
+    font-size:8px;color:var(--gold);letter-spacing:1px;
+    border-bottom:1px solid rgba(232,230,218,.35);padding-bottom:8px}
   #tally{font-size:9px;display:flex;align-items:center;gap:5px;color:var(--white)}
   #tally svg{width:11px;height:11px}
   #histlist{overflow-y:auto;display:flex;flex-direction:column;gap:6px;flex:1;min-height:0}
@@ -150,12 +152,11 @@
   <div class="side" id="sideP"><span class="onl" id="onlP">ONLINE</span><span class="pname plum">MR.PLUM</span></div>
   <div class="vs">VS</div>
   <div class="side" id="sideS"><span class="onl" id="onlS">ONLINE</span><span class="pname orange">SANNAMY</span></div>
-  <div class="bigscore" id="scoreP">02</div>
+  <div class="bigscore plum" id="scoreP">02</div>
   <div></div>
-  <div class="bigscore" id="scoreS">02</div>
+  <div class="bigscore orange" id="scoreS">02</div>
 </div>
 
-<div id="status"></div>
 <div id="substatus"></div>
 
 <div id="boardwrap">
@@ -384,7 +385,6 @@ const sfx = {
 
 /* ---------------- DOM ---------------- */
 const boardEl   = document.getElementById('board');
-const statusEl  = document.getElementById('status');
 const subEl     = document.getElementById('substatus');
 const overlayEl = document.getElementById('overlay');
 const overText  = document.getElementById('overText');
@@ -436,15 +436,19 @@ function renderBoard(prev, animate){
 function renderHud(){
   const p = count(state.board,'P'), s = count(state.board,'S');
   const over = isOver(state.board);
-  document.getElementById('scoreP').textContent = z2(p);
-  document.getElementById('scoreS').textContent = z2(s);
-  document.getElementById('sideP').classList.toggle('active', !over && state.turn==='P');
-  document.getElementById('sideS').classList.toggle('active', !over && state.turn==='S');
+  const scoreElP = document.getElementById('scoreP');
+  const scoreElS = document.getElementById('scoreS');
+  scoreElP.textContent = z2(p);
+  scoreElS.textContent = z2(s);
+  const turnP = !over && state.turn==='P';
+  const turnS = !over && state.turn==='S';
+  document.getElementById('sideP').classList.toggle('active', turnP);
+  document.getElementById('sideS').classList.toggle('active', turnS);
+  scoreElP.classList.toggle('turn', turnP);   // active player's name + score blink
+  scoreElS.classList.toggle('turn', turnS);
 
   if(over){
     const winner = p>s ? 'P' : s>p ? 'S' : null;
-    statusEl.className = '';
-    statusEl.textContent = winner ? NAMES[winner]+' WINS!' : 'TIE GAME!';
     overText.innerHTML = (winner ? '<b>'+NAMES[winner]+'</b><br>WINS!' : 'TIE GAME!')
       + '<br><br>' + z2(p) + ' - ' + z2(s);
     overlayEl.classList.remove('hidden');
@@ -455,8 +459,6 @@ function renderHud(){
     }
   }else{
     overlayEl.classList.add('hidden');
-    if(me && state.turn===me){ statusEl.className='mine'; statusEl.textContent='YOUR TURN!'; }
-    else { statusEl.className=''; statusEl.textContent = NAMES[state.turn]+' IS THINKING...'; }
   }
   subEl.textContent = state.passed ? NAMES[state.passed]+' PASSED - NO MOVES!' : '';
 }
