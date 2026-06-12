@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#11102a">
+<meta name="mobile-web-app-capable" content="yes">
+<title>PLUM ♥ SANNAMY OTHELLO</title>
+<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8" shape-rendering="crispEdges"><rect width="8" height="8" fill="%230a8a0a"/><rect x="2" y="1" width="4" height="6" fill="%238d3fc0"/><rect x="1" y="2" width="6" height="4" fill="%238d3fc0"/><rect x="2" y="2" width="2" height="1" fill="%23c07ce8"/></svg>'>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#11102a;
+    --green:#0a8a0a;
+    --green-dark:#065c06;
+    --green-line:#054a05;
+    --gold:#e8b830;
+    --gold-dark:#8a6a10;
+    --plum:#8d3fc0;
+    --plum-lite:#c07ce8;
+    --pink:#f8a0c8;
+    --pink-lite:#ffddee;
+    --white:#f0f0e8;
+    --red:#e84040;
+    --cell:min(11.4vw, 6.6dvh, 52px);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    background:var(--bg);
+    color:var(--white);
+    font-family:'Press Start 2P', monospace;
+    display:flex;flex-direction:column;align-items:center;
+    gap:10px;
+    padding:max(10px, env(safe-area-inset-top)) 8px max(10px, env(safe-area-inset-bottom));
+    user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
+    touch-action:manipulation;
+    overflow:hidden;
+    image-rendering:pixelated;
+  }
+  /* CRT scanlines */
+  body::after{
+    content:'';position:fixed;inset:0;pointer-events:none;z-index:99;
+    background:repeating-linear-gradient(0deg, rgba(0,0,0,.14) 0 1px, transparent 1px 3px);
+  }
+  h1{font-size:11px;letter-spacing:1px;display:flex;align-items:center;gap:7px;margin-top:4px}
+  h1 svg{width:14px;height:14px}
+  .sub{font-size:8px;color:var(--gold);margin-top:6px;text-align:center;letter-spacing:2px}
+
+  .scores{display:flex;align-items:center;gap:8px;margin-top:4px}
+  .side{display:flex;align-items:center;gap:5px;font-size:8px;padding:6px 6px;border:3px solid #2a2950;background:#1a1938}
+  .side.active{border-color:var(--gold)}
+  .side .cur{color:var(--gold);font-size:8px;width:10px;animation:blink 1s steps(2) infinite;visibility:hidden}
+  .side.active .cur{visibility:visible}
+  .side svg{width:14px;height:14px}
+  .vs{font-size:7px;color:#6a6890}
+  @keyframes blink{50%{opacity:0}}
+
+  #status{font-size:10px;min-height:14px;text-align:center;color:var(--white)}
+  #status.mine{color:var(--gold)}
+  #substatus{font-size:7px;min-height:9px;color:var(--pink);text-align:center}
+
+  #boardwrap{position:relative}
+  #board{
+    display:grid;grid-template-columns:repeat(8, var(--cell));grid-template-rows:repeat(8, var(--cell));
+    border:6px solid #3a2810;
+    outline:3px solid #1c1206;
+    box-shadow:0 0 0 3px #5a4020 inset, 0 8px 0 rgba(0,0,0,.4);
+    background:var(--green-line);
+    gap:2px;padding:2px;
+  }
+  .cell{background:var(--green);position:relative;
+    box-shadow:inset -3px -3px 0 var(--green-dark), inset 2px 2px 0 #15a815;}
+  .cell .disc{position:absolute;inset:12%;display:none}
+  .cell .disc.on{display:block}
+  .cell .disc svg{width:100%;height:100%;display:block}
+  .cell .disc.flip{animation:flip .35s steps(4)}
+  .cell .disc.pop{animation:pop .25s steps(3)}
+  @keyframes flip{0%{transform:scaleX(1)}50%{transform:scaleX(.12)}100%{transform:scaleX(1)}}
+  @keyframes pop{0%{transform:scale(.2)}100%{transform:scale(1)}}
+  .cell .hint{position:absolute;left:50%;top:50%;width:22%;height:22%;margin:-11% 0 0 -11%;
+    display:none;animation:blink .9s steps(2) infinite}
+  .cell.legal .hint{display:block}
+  .cell .dot{position:absolute;right:6%;top:6%;width:14%;height:14%;background:var(--gold);
+    display:none;animation:blink .7s steps(2) infinite}
+  .cell.last .dot{display:block}
+
+  #overlay{position:absolute;inset:-6px;background:rgba(10,9,30,.86);display:flex;
+    align-items:center;justify-content:center;z-index:10}
+  #overlay.hidden{display:none}
+  #overlay .panel{text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px;
+    border:4px solid var(--gold);background:#1a1938;padding:22px 18px;
+    box-shadow:6px 6px 0 rgba(0,0,0,.5)}
+  #overlay .panel svg{width:42px;height:26px}
+  #overText{font-size:10px;line-height:1.8;color:var(--white)}
+  #overText b{color:var(--gold);font-weight:normal}
+
+  footer{display:flex;align-items:center;gap:12px;margin-top:2px}
+  .led{font-size:7px;padding:4px 6px;border:2px solid}
+  .led.on{color:#40e860;border-color:#40e860}
+  .led.wait{color:var(--gold);border-color:var(--gold);animation:blink 1s steps(2) infinite}
+  .led.off{color:var(--red);border-color:var(--red)}
+
+  .btn{
+    font-family:inherit;font-size:9px;color:#221a06;background:var(--gold);
+    border:0;padding:11px 13px;cursor:pointer;letter-spacing:1px;
+    box-shadow:0 4px 0 var(--gold-dark), inset -3px -3px 0 #c49520, inset 3px 3px 0 #ffd968;
+  }
+  .btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--gold-dark), inset -3px -3px 0 #c49520, inset 3px 3px 0 #ffd968}
+  .btn.big{font-size:10px;padding:16px 14px;display:flex;align-items:center;gap:10px}
+  .btn.big svg{width:18px;height:18px}
+  .btn.plumbtn{background:var(--plum);color:#fff;box-shadow:0 4px 0 #4d1675, inset -3px -3px 0 #6f2a9e, inset 3px 3px 0 var(--plum-lite)}
+  .btn.pinkbtn{background:var(--pink);color:#5a1030;box-shadow:0 4px 0 #b65387, inset -3px -3px 0 #d985ab, inset 3px 3px 0 var(--pink-lite)}
+  .linky{font-family:inherit;font-size:7px;color:#6a6890;background:none;border:0;
+    text-decoration:underline;cursor:pointer;padding:4px}
+
+  .screen{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:22px;padding:20px;text-align:center}
+  .screen.hidden{display:none}
+  .screen h2{font-size:11px;line-height:2;color:var(--gold)}
+  .screen .small{font-size:7px;color:#6a6890;line-height:1.9;max-width:300px}
+
+  #modal{position:fixed;inset:0;background:rgba(10,9,30,.8);z-index:60;display:flex;
+    align-items:center;justify-content:center}
+  #modal.hidden{display:none}
+  #modal .panel{border:4px solid var(--gold);background:#1a1938;padding:20px;text-align:center;
+    display:flex;flex-direction:column;gap:16px;box-shadow:6px 6px 0 rgba(0,0,0,.5)}
+  #modal .panel div{font-size:9px;line-height:1.8}
+  #modal .row{display:flex;gap:14px;justify-content:center}
+
+  #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:70;
+    font-size:8px;background:#1a1938;border:3px solid var(--red);color:var(--red);
+    padding:9px 12px;display:none}
+</style>
+</head>
+<body>
+
+<header style="display:flex;flex-direction:column;align-items:center">
+  <h1>MR.PLUM <span id="heart"></span> SANNAMY</h1>
+  <div class="sub">* OTHELLO *</div>
+</header>
+
+<div class="scores">
+  <div class="side" id="sideP"><span class="cur">&#9654;</span><span id="iconP"></span><span>PLUM</span><span id="scoreP">02</span></div>
+  <div class="vs">VS</div>
+  <div class="side" id="sideS"><span class="cur">&#9654;</span><span id="iconS"></span><span>SANNAMY</span><span id="scoreS">02</span></div>
+</div>
+
+<div id="status"></div>
+<div id="substatus"></div>
+
+<div id="boardwrap">
+  <div id="board"></div>
+  <div id="overlay" class="hidden">
+    <div class="panel">
+      <span id="crown"></span>
+      <div id="overText"></div>
+      <button class="btn" id="btnAgain">NEW GAME</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <span class="led off" id="link">LINK...</span>
+  <button class="btn" id="btnNew" style="font-size:8px;padding:9px 10px">NEW GAME</button>
+  <button class="linky" id="btnSwap">SWITCH PLAYER</button>
+</footer>
+
+<div class="screen hidden" id="select">
+  <h1>MR.PLUM <span id="heart2"></span> SANNAMY</h1>
+  <div class="sub">* OTHELLO *</div>
+  <h2>WHO ARE YOU?</h2>
+  <button class="btn big plumbtn" id="pickP"><span id="iconPickP"></span>MR. PLUM</button>
+  <button class="btn big pinkbtn" id="pickS"><span id="iconPickS"></span>SANNAMY</button>
+  <div class="small">YOUR CHOICE IS SAVED ON THIS PHONE.<br>PICK A DIFFERENT PLAYER ON EACH PHONE!</div>
+</div>
+
+<div id="modal" class="hidden">
+  <div class="panel">
+    <div>START A NEW GAME?<br>THE CURRENT BOARD IS LOST!</div>
+    <div class="row">
+      <button class="btn" id="modalYes">YES!</button>
+      <button class="btn" id="modalNo" style="background:#6a6890;box-shadow:0 4px 0 #3a3950, inset -3px -3px 0 #565478, inset 3px 3px 0 #9a98c0;color:#fff">NO</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://unpkg.com/mqtt@5/dist/mqtt.min.js"></script>
+<script>
+'use strict';
+
+/* ============================================================
+   CONFIG — the room code is the only "password". Both phones
+   must use the same code. Change it to anything you like.
+   ============================================================ */
+const ROOM    = 'psm-othello-x7k2q9d4';
+const TOPIC   = ROOM + '/state';
+const BROKERS = [
+  'wss://broker.emqx.io:8084/mqtt',
+  'wss://broker.hivemq.com:8884/mqtt'
+];
+
+const NAMES = {P:'MR. PLUM', S:'SANNAMY'};
+const myId  = Math.random().toString(36).slice(2,10);
+
+/* ---------------- pixel art ---------------- */
+function bmpSVG(rows, colors){
+  const w = rows[0].length, h = rows.length;
+  let r = '';
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+    const ch = rows[y][x];
+    if(ch!=='.' && colors[ch]) r += `<rect x="${x}" y="${y}" width="1" height="1" fill="${colors[ch]}"/>`;
+  }
+  return `<svg viewBox="0 0 ${w} ${h}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">${r}</svg>`;
+}
+const DISC_ROWS = [
+  '..####..',
+  '.#ll###.',
+  '#ll#####',
+  '#l######',
+  '######d#',
+  '#####dd#',
+  '.###dd#.',
+  '..####..'
+];
+const DISC_SVG = {
+  P: bmpSVG(DISC_ROWS, {'#':'#8d3fc0','l':'#c07ce8','d':'#4d1675'}),
+  S: bmpSVG(DISC_ROWS, {'#':'#f8a0c8','l':'#ffddee','d':'#b65387'})
+};
+const HEART_SVG = bmpSVG(
+  ['.##.##.','#######','#######','.#####.','..###..','...#...'],
+  {'#':'#ff4f7d'});
+const CROWN_SVG = bmpSVG(
+  ['#...#...#','##..#..##','#########','.#######.','.##o###o#'.replace('o','#')],
+  {'#':'#e8b830'});
+
+document.getElementById('heart').innerHTML  = HEART_SVG;
+document.getElementById('heart2').innerHTML = HEART_SVG;
+document.getElementById('iconP').innerHTML  = DISC_SVG.P;
+document.getElementById('iconS').innerHTML  = DISC_SVG.S;
+document.getElementById('iconPickP').innerHTML = DISC_SVG.P;
+document.getElementById('iconPickS').innerHTML = DISC_SVG.S;
+document.getElementById('crown').innerHTML  = CROWN_SVG;
+
+/* ---------------- othello rules ---------------- */
+const DIRS = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+const opp  = c => c==='P' ? 'S' : 'P';
+
+function initialBoard(){
+  const b = Array(64).fill('.');
+  b[27]='S'; b[28]='P'; b[35]='P'; b[36]='S';
+  return b.join('');
+}
+function flips(board, idx, color){
+  if(board[idx] !== '.') return [];
+  const r0 = idx>>3, c0 = idx&7, o = opp(color);
+  let all = [];
+  for(const [dr,dc] of DIRS){
+    let r=r0+dr, c=c0+dc, line=[];
+    while(r>=0 && r<8 && c>=0 && c<8 && board[r*8+c]===o){ line.push(r*8+c); r+=dr; c+=dc; }
+    if(line.length && r>=0 && r<8 && c>=0 && c<8 && board[r*8+c]===color) all = all.concat(line);
+  }
+  return all;
+}
+function legalMoves(board, color){
+  const m = [];
+  for(let i=0;i<64;i++) if(flips(board,i,color).length) m.push(i);
+  return m;
+}
+const count = (board,c) => board.split('').filter(x=>x===c).length;
+const isOver = board => !legalMoves(board,'P').length && !legalMoves(board,'S').length;
+
+/* ---------------- state ---------------- */
+let me    = localStorage.getItem('othello-role') || null;   // 'P' | 'S' | null
+let state = {seq:0, board:initialBoard(), turn:'P', last:-1, passed:null};
+let passTimer = null;
+let jingledSeq = -1;
+
+/* ---------------- sound ---------------- */
+let AC = null;
+function wakeAudio(){
+  try{
+    if(!AC) AC = new (window.AudioContext||window.webkitAudioContext)();
+    if(AC.state==='suspended') AC.resume();
+  }catch(e){}
+}
+document.addEventListener('pointerdown', wakeAudio);
+function beep(freq, dur, when=0, type='square', vol=.05){
+  if(!AC || AC.state!=='running') return;
+  try{
+    const t = AC.currentTime + when;
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(.001, t+dur);
+    o.connect(g); g.connect(AC.destination);
+    o.start(t); o.stop(t+dur+.02);
+  }catch(e){}
+}
+const sfx = {
+  place(){ beep(740,.07); beep(988,.09,.06); },
+  flips(n){ for(let i=0;i<Math.min(n,5);i++) beep(330+50*i,.04,.10+.05*i,'triangle'); },
+  turn(){ beep(523,.08); beep(659,.08,.09); beep(784,.13,.18); },
+  win(){ [523,659,784,1047,784,1047].forEach((f,i)=>beep(f,.12,.12*i)); },
+  lose(){ [392,330,262,196].forEach((f,i)=>beep(f,.16,.16*i)); },
+  tie(){ beep(440,.15); beep(440,.15,.2); },
+  denied(){ beep(160,.09,'square',.04); }
+};
+
+/* ---------------- DOM ---------------- */
+const boardEl   = document.getElementById('board');
+const statusEl  = document.getElementById('status');
+const subEl     = document.getElementById('substatus');
+const overlayEl = document.getElementById('overlay');
+const overText  = document.getElementById('overText');
+const linkEl    = document.getElementById('link');
+const toastEl   = document.getElementById('toast');
+const cells = [];
+
+for(let i=0;i<64;i++){
+  const d = document.createElement('div');
+  d.className = 'cell';
+  d.innerHTML = '<div class="disc"></div><div class="hint"></div><div class="dot"></div>';
+  d.addEventListener('click', ()=>tryMove(i));
+  cells.push(d);
+  boardEl.appendChild(d);
+}
+
+let toastTimer = null;
+function toast(msg){
+  toastEl.textContent = msg;
+  toastEl.style.display = 'block';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>toastEl.style.display='none', 1800);
+}
+
+/* ---------------- render ---------------- */
+function renderBoard(prev, animate){
+  const over  = isOver(state.board);
+  const legal = (me && !over && state.turn===me) ? new Set(legalMoves(state.board, me)) : new Set();
+  for(let i=0;i<64;i++){
+    const ch = state.board[i], pc = prev ? prev[i] : '.';
+    const cell = cells[i], disc = cell.firstChild, hint = cell.children[1];
+    if(ch==='.'){
+      disc.className = 'disc'; cell.dataset.c = '';
+    }else{
+      if(cell.dataset.c !== ch){ disc.innerHTML = DISC_SVG[ch]; cell.dataset.c = ch; }
+      let cls = 'disc on';
+      if(animate && pc==='.') cls += ' pop';
+      else if(animate && pc!=='.' && pc!==ch) cls += ' flip';
+      disc.className = 'disc'; void disc.offsetWidth;  // restart css animation
+      disc.className = cls;
+    }
+    hint.style.background = me==='P' ? 'var(--plum-lite)' : 'var(--pink-lite)';
+    cell.classList.toggle('legal', legal.has(i));
+    cell.classList.toggle('last', i===state.last && ch!=='.');
+  }
+}
+
+function renderHud(){
+  const p = count(state.board,'P'), s = count(state.board,'S');
+  const over = isOver(state.board);
+  document.getElementById('scoreP').textContent = String(p).padStart(2,'0');
+  document.getElementById('scoreS').textContent = String(s).padStart(2,'0');
+  document.getElementById('sideP').classList.toggle('active', !over && state.turn==='P');
+  document.getElementById('sideS').classList.toggle('active', !over && state.turn==='S');
+
+  if(over){
+    const winner = p>s ? 'P' : s>p ? 'S' : null;
+    statusEl.className = '';
+    statusEl.textContent = winner ? NAMES[winner]+' WINS!' : 'TIE GAME!';
+    overText.innerHTML = (winner ? '<b>'+NAMES[winner]+'</b><br>WINS!' : 'TIE GAME!')
+      + '<br><br>' + String(p).padStart(2,'0') + ' - ' + String(s).padStart(2,'0');
+    overlayEl.classList.remove('hidden');
+    if(jingledSeq !== state.seq){
+      jingledSeq = state.seq;
+      if(me) (winner===me ? sfx.win : winner ? sfx.lose : sfx.tie)();
+    }
+  }else{
+    overlayEl.classList.add('hidden');
+    if(me && state.turn===me){ statusEl.className='mine'; statusEl.textContent='YOUR TURN!'; }
+    else { statusEl.className=''; statusEl.textContent = NAMES[state.turn]+' IS THINKING...'; }
+  }
+  subEl.textContent = state.passed ? NAMES[state.passed]+' PASSED - NO MOVES!' : '';
+}
+
+function applyState(ns, animate, remote){
+  clearTimeout(passTimer);
+  const prev = state.board;
+  const wasMyTurn = me && state.turn===me && !isOver(state.board);
+  state = ns;
+  renderBoard(prev, animate);
+  renderHud();
+  if(remote && me && !isOver(state.board)){
+    let changed = 0;
+    for(let i=0;i<64;i++) if(prev[i]!==state.board[i] && prev[i]!=='.') changed++;
+    if(changed) sfx.flips(changed);
+    if(state.turn===me && !wasMyTurn){
+      sfx.turn();
+      if(navigator.vibrate) navigator.vibrate([60,40,60]);
+    }
+  }
+  scheduleAutoPass();
+}
+
+/* ---------------- moves ---------------- */
+function publishState(ns){
+  applyState(ns, true, false);
+  if(client && client.connected){
+    client.publish(TOPIC, JSON.stringify({...ns, from: myId}), {retain:true, qos:1});
+  }
+}
+function tryMove(idx){
+  if(!me || isOver(state.board)) return;
+  if(!client || !client.connected){ toast('NO LINK! RECONNECTING...'); return; }
+  if(state.turn !== me){ return; }
+  const f = flips(state.board, idx, me);
+  if(!f.length) return;
+  const b = state.board.split('');
+  b[idx] = me; f.forEach(i => b[i] = me);
+  sfx.place(); sfx.flips(f.length);
+  publishState({seq: state.seq+1, board: b.join(''), turn: opp(me), last: idx, passed: null});
+}
+function doPass(){
+  publishState({seq: state.seq+1, board: state.board, turn: opp(state.turn),
+                last: state.last, passed: state.turn});
+}
+function scheduleAutoPass(){
+  if(!me || isOver(state.board)) return;
+  if(legalMoves(state.board, state.turn).length) return;
+  // stuck player's own phone passes quickly; the other phone is a slow failsafe
+  passTimer = setTimeout(doPass, state.turn===me ? 1400 : 4000);
+}
+function newGame(){
+  publishState({seq: state.seq+1, board: initialBoard(), turn:'P', last:-1, passed:null});
+}
+
+/* ---------------- networking ---------------- */
+let client = null, brokerIdx = 0, errCount = 0;
+function setLink(s){
+  linkEl.className = 'led ' + s;
+  linkEl.textContent = s==='on' ? 'LINK OK' : s==='wait' ? 'LINK...' : 'NO LINK';
+}
+function connect(){
+  setLink('wait');
+  client = mqtt.connect(BROKERS[brokerIdx], {
+    clientId: 'oth_' + myId,
+    keepalive: 30,
+    reconnectPeriod: 2500,
+    connectTimeout: 6000,
+    clean: true
+  });
+  client.on('connect', ()=>{
+    errCount = 0;
+    setLink('on');
+    client.subscribe(TOPIC, {qos:1});
+  });
+  client.on('reconnect', ()=>setLink('wait'));
+  client.on('close', ()=>{ if(linkEl.className.indexOf('on')>=0) setLink('off'); });
+  client.on('error', ()=>{
+    errCount++;
+    if(errCount >= 3){            // this broker is not working - try the next one
+      errCount = 0;
+      brokerIdx = (brokerIdx+1) % BROKERS.length;
+      try{ client.end(true); }catch(e){}
+      setTimeout(connect, 500);
+    }
+  });
+  client.on('message', (t, payload)=>{
+    try{
+      const m = JSON.parse(payload.toString());
+      if(typeof m.seq!=='number' || typeof m.board!=='string' || m.board.length!==64) return;
+      if(!/^[.PS]{64}$/.test(m.board) || (m.turn!=='P' && m.turn!=='S')) return;
+      if(m.seq <= state.seq) return;
+      applyState({seq:m.seq, board:m.board, turn:m.turn,
+                  last: typeof m.last==='number' ? m.last : -1,
+                  passed: m.passed==='P'||m.passed==='S' ? m.passed : null},
+                 true, m.from !== myId);
+    }catch(e){}
+  });
+}
+connect();
+
+document.addEventListener('visibilitychange', ()=>{
+  if(!document.hidden && client && !client.connected){
+    try{ client.reconnect(); }catch(e){}
+  }
+});
+
+/* flash the tab title when it is your turn in the background */
+let titleFlip = false;
+setInterval(()=>{
+  if(document.hidden && me && state.turn===me && !isOver(state.board)){
+    titleFlip = !titleFlip;
+    document.title = titleFlip ? '* YOUR TURN! *' : 'PLUM + SANNAMY OTHELLO';
+  }else if(document.title !== 'PLUM ♥ SANNAMY OTHELLO'){
+    document.title = 'PLUM ♥ SANNAMY OTHELLO';
+  }
+}, 1000);
+
+/* ---------------- screens & buttons ---------------- */
+const selectEl = document.getElementById('select');
+function pick(role){
+  me = role;
+  localStorage.setItem('othello-role', role);
+  selectEl.classList.add('hidden');
+  renderBoard(null,false); renderHud(); scheduleAutoPass();
+}
+document.getElementById('pickP').addEventListener('click', ()=>pick('P'));
+document.getElementById('pickS').addEventListener('click', ()=>pick('S'));
+document.getElementById('btnSwap').addEventListener('click', ()=>{
+  localStorage.removeItem('othello-role');
+  location.reload();
+});
+
+const modalEl = document.getElementById('modal');
+document.getElementById('btnNew').addEventListener('click', ()=>modalEl.classList.remove('hidden'));
+document.getElementById('btnAgain').addEventListener('click', ()=>modalEl.classList.remove('hidden'));
+document.getElementById('modalYes').addEventListener('click', ()=>{ modalEl.classList.add('hidden'); newGame(); });
+document.getElementById('modalNo').addEventListener('click', ()=>modalEl.classList.add('hidden'));
+
+if(!me) selectEl.classList.remove('hidden');
+renderBoard(null,false); renderHud(); scheduleAutoPass();
+
+/* tiny debug handle (harmless to leave in) */
+window.__dbg = {
+  state: ()=>state,
+  inject: m => { // simulate a message from the other phone
+    applyState({seq:m.seq, board:m.board, turn:m.turn,
+                last:m.last??-1, passed:m.passed??null}, true, true);
+  },
+  legalMoves, flips
+};
+</script>
+</body>
+</html>
