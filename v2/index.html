@@ -99,6 +99,8 @@
     box-shadow:0 4px 0 var(--gold-dark), inset -3px -3px 0 #c49520, inset 3px 3px 0 #ffd968;
   }
   .btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--gold-dark), inset -3px -3px 0 #c49520, inset 3px 3px 0 #ffd968}
+  .btn.flat{box-shadow:none}
+  .btn.flat:active{transform:none;box-shadow:none}
   .btn.big{font-size:10px;padding:16px 14px;display:flex;align-items:center;gap:10px}
   .btn.big svg{width:18px;height:18px}
   .btn.plumbtn{background:var(--plum);color:#fff;box-shadow:0 4px 0 #4d1675, inset -3px -3px 0 #6f2a9e, inset 3px 3px 0 var(--plum-lite)}
@@ -127,13 +129,22 @@
   .hscore .mini svg{width:13px;height:8px}
   .hempty{font-size:7px;color:#6a6890;line-height:2;text-align:center;padding:6px 0}
 
-  #modal{position:fixed;inset:0;background:rgba(10,9,30,.8);z-index:60;display:flex;
+  /* rock-paper-scissors "who starts" card */
+  #rps{position:absolute;inset:0;background:rgba(13,13,13,.95);z-index:20;display:flex;
     align-items:center;justify-content:center}
-  #modal.hidden{display:none}
-  #modal .panel{border:4px solid var(--gold);background:#1a1938;padding:20px;text-align:center;
-    display:flex;flex-direction:column;gap:16px;box-shadow:6px 6px 0 rgba(0,0,0,.5)}
-  #modal .panel div{font-size:9px;line-height:1.8}
-  #modal .row{display:flex;gap:14px;justify-content:center}
+  #rps.hidden{display:none}
+  #rps .panel{display:flex;flex-direction:column;align-items:center;gap:13px;
+    border:3px solid var(--gold);background:#161616;padding:18px 14px;width:90%;max-width:300px}
+  .rtitle{font-size:11px;color:var(--gold);letter-spacing:1px}
+  .rsub{font-size:6px;color:#9a9a9a;letter-spacing:1px;line-height:1.8;text-align:center}
+  .rchoices{display:flex;gap:8px;justify-content:center}
+  .rbtn{font-family:inherit;font-size:6px;color:var(--white);background:#2e2e2e;border:2px solid #444;
+    padding:9px 5px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;width:64px}
+  .rbtn svg{width:26px;height:26px;display:block}
+  .rbtn.sel{border-color:var(--gold);background:#3a3320}
+  .rbtn:disabled{opacity:.4;cursor:default}
+  .rstatus{font-size:8px;color:var(--white);text-align:center;line-height:1.7;min-height:24px}
+  .rstatus b{color:var(--gold);font-weight:normal}
 
   #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:70;
     font-size:8px;background:#1a1938;border:3px solid var(--red);color:var(--red);
@@ -164,13 +175,26 @@
     <div class="panel">
       <span class="crown" id="crown"></span>
       <div id="overText"></div>
-      <button class="btn" id="btnAgain">NEW GAME</button>
+      <button class="btn flat" id="btnAgain">NEW GAME</button>
+    </div>
+  </div>
+  <div id="rps" class="hidden">
+    <div class="panel">
+      <div class="rtitle">WHO STARTS?</div>
+      <div class="rsub">WINNER OF ROCK PAPER SCISSORS<br>MOVES FIRST</div>
+      <div class="rchoices">
+        <button class="rbtn" data-c="R"><span id="gR"></span>ROCK</button>
+        <button class="rbtn" data-c="P"><span id="gP"></span>PAPER</button>
+        <button class="rbtn" data-c="S"><span id="gS"></span>SCISSORS</button>
+      </div>
+      <div class="rstatus" id="rstatus">PICK ONE!</div>
+      <button id="rcancel" style="font-family:inherit;font-size:7px;color:#6a6890;background:none;border:0;text-decoration:underline;cursor:pointer;padding:4px">CANCEL</button>
     </div>
   </div>
 </div>
 
 <footer>
-  <button class="btn" id="btnNew" style="font-size:8px;padding:9px 10px">NEW GAME</button>
+  <button class="btn flat" id="btnNew" style="font-size:8px;padding:9px 10px">NEW GAME</button>
 </footer>
 
 <section id="scoresec">
@@ -185,16 +209,6 @@
   <button class="btn big plumbtn" id="pickP"><span id="iconPickP"></span>MR. PLUM</button>
   <button class="btn big pinkbtn" id="pickS"><span id="iconPickS"></span>SANNAMY</button>
   <div class="small">YOUR CHOICE IS SAVED ON THIS PHONE.<br>PICK A DIFFERENT PLAYER ON EACH PHONE!</div>
-</div>
-
-<div id="modal" class="hidden">
-  <div class="panel">
-    <div>START A NEW GAME?<br>THE CURRENT BOARD IS LOST!</div>
-    <div class="row">
-      <button class="btn" id="modalYes">YES!</button>
-      <button class="btn" id="modalNo" style="background:#6a6890;box-shadow:0 4px 0 #3a3950, inset -3px -3px 0 #565478, inset 3px 3px 0 #9a98c0;color:#fff">NO</button>
-    </div>
-  </div>
 </div>
 
 <div id="toast"></div>
@@ -212,6 +226,7 @@ const ROOM    = new URLSearchParams(location.search).get('room') || 'psm-othello
 const TOPIC   = ROOM + '/state';
 const TOPIC_H = ROOM + '/scores';
 const TOPIC_P = ROOM + '/presence';
+const TOPIC_R = ROOM + '/rps';
 const BROKERS = [
   'wss://broker.emqx.io:8084/mqtt',
   'wss://broker.hivemq.com:8884/mqtt'
@@ -251,12 +266,23 @@ const HEART_SVG = bmpSVG(
 const CROWN_SVG = bmpSVG(
   ['#...#...#','##..#..##','#########','.#######.','.#######.'],
   {'#':'#e8b830'});
+const RPS_SVG = {
+  R: bmpSVG(['........','..####..','.#llll#.','#llllll#','########','########','.######.','........'],
+            {'#':'#7a7a7a','l':'#a8a8a8'}),
+  P: bmpSVG(['........','.######.','.#####l.','.######.','.######.','.######.','.######.','........'],
+            {'#':'#e6e6e6','l':'#b8b8b8'}),
+  S: bmpSVG(['........','#......#','.#....#.','..#..#..','...##...','..#..#..','.##..##.','........'],
+            {'#':'#cfcfcf'})
+};
 
 document.getElementById('heart').innerHTML  = HEART_SVG;
 document.getElementById('heart2').innerHTML = HEART_SVG;
 document.getElementById('iconPickP').innerHTML = DISC_SVG.P;
 document.getElementById('iconPickS').innerHTML = DISC_SVG.S;
 document.getElementById('crown').innerHTML  = CROWN_SVG;
+document.getElementById('gR').innerHTML = RPS_SVG.R;
+document.getElementById('gP').innerHTML = RPS_SVG.P;
+document.getElementById('gS').innerHTML = RPS_SVG.S;
 
 /* ---------------- othello rules ---------------- */
 const DIRS = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
@@ -464,6 +490,7 @@ function renderHud(){
 
 function applyState(ns, animate, remote){
   clearTimeout(passTimer);
+  if(rps && ns.board === initialBoard()){ rps = null; closeRps(); }  // a fresh board = RPS decided
   const prev = state.board;
   const wasMyTurn = me && state.turn===me && !isOver(state.board);
   state = ns;
@@ -489,7 +516,7 @@ function publishState(ns){
   }
 }
 function tryMove(idx){
-  if(!me || isOver(state.board)) return;
+  if(!me || rps || isOver(state.board)) return;
   if(!client || !client.connected){ toast('NO LINK! RECONNECTING...'); return; }
   if(state.turn !== me){ return; }
   const f = flips(state.board, idx, me);
@@ -504,14 +531,94 @@ function doPass(){
                 last: state.last, passed: state.turn});
 }
 function scheduleAutoPass(){
-  if(!me || isOver(state.board)) return;
+  if(!me || rps || isOver(state.board)) return;
   if(legalMoves(state.board, state.turn).length) return;
   // stuck player's own phone passes quickly; the other phone is a slow failsafe
   passTimer = setTimeout(doPass, state.turn===me ? 1400 : 4000);
 }
-function newGame(){
-  publishState({seq: state.seq+1, board: initialBoard(), turn:'P', last:-1, passed:null});
+function newGame(starter){
+  publishState({seq: state.seq+1, board: initialBoard(), turn: starter||'P', last:-1, passed:null});
 }
+
+/* ---------- rock-paper-scissors: who starts the new game ---------- */
+const RPS_NAME = {R:'ROCK', P:'PAPER', S:'SCISSORS'};
+let rps = null;           // {rid, picks:{P,S}} while a round is in progress
+let rpsDoneRid = 0;       // highest round id we've already resolved
+let rpsTimer = null;
+const rpsEl     = document.getElementById('rps');
+const rstatusEl = document.getElementById('rstatus');
+const rbtns     = [...document.querySelectorAll('.rbtn')];
+const rbeats = (a,b) => (a==='R'&&b==='S')||(a==='S'&&b==='P')||(a==='P'&&b==='R');
+const rpsWinner = pk => rbeats(pk.P,pk.S) ? 'P' : rbeats(pk.S,pk.P) ? 'S' : null;
+
+function publishRps(extra){
+  if(rps && client && client.connected)
+    client.publish(TOPIC_R, JSON.stringify({rid:rps.rid, picks:rps.picks, from:myId, ...(extra||{})}),
+                   {retain:true, qos:1});
+}
+function openRps(){ rpsEl.classList.remove('hidden'); renderRps(); }
+function closeRps(){ rpsEl.classList.add('hidden'); clearTimeout(rpsTimer); }
+function startRps(){
+  if(!me) return;
+  if(!client || !client.connected){ toast('NO LINK! RECONNECTING...'); return; }
+  rps = {rid: Date.now(), picks:{P:null, S:null}};
+  publishRps();
+  openRps();
+}
+function cancelRps(){ if(rps) publishRps({cancel:true}); rps = null; closeRps(); }
+function pickRps(c){
+  if(!rps || !me || rps.picks[me]) return;
+  rps.picks[me] = c;
+  beep(660,.05); beep(880,.07,.05);
+  publishRps(); renderRps(); resolveRps();
+}
+function renderRps(){
+  if(!rps) return;
+  const myPick = me ? rps.picks[me] : null, other = opp(me);
+  rbtns.forEach(b=>{ b.classList.toggle('sel', myPick===b.dataset.c); b.disabled = !!myPick; });
+  if(!myPick){ rstatusEl.innerHTML = 'PICK ONE!'; return; }
+  if(!rps.picks[other]){ rstatusEl.innerHTML = 'YOU PICKED '+RPS_NAME[myPick]+'.<br>WAITING FOR '+NAMES[other]+'...'; return; }
+  const w = rpsWinner(rps.picks);
+  rstatusEl.innerHTML = w ? '<b>'+NAMES[w]+'</b> WINS<br>AND STARTS!'
+                          : 'BOTH PICKED '+RPS_NAME[myPick]+'.<br>TIE - PICK AGAIN!';
+}
+function resolveRps(){
+  if(!rps || !rps.picks.P || !rps.picks.S) return;
+  const rid = rps.rid, w = rpsWinner(rps.picks);
+  clearTimeout(rpsTimer);
+  if(!w){                                   // tie -> Plum's phone deals a fresh round
+    sfx.tie();
+    rpsTimer = setTimeout(()=>{
+      if(me==='P' && rps && rps.rid===rid){ rps = {rid:rid+1, picks:{P:null,S:null}}; publishRps(); renderRps(); }
+    }, 1400);
+    return;
+  }
+  if(rid <= rpsDoneRid) return;
+  rpsDoneRid = rid;
+  (w===me ? sfx.win : sfx.lose)();
+  rpsTimer = setTimeout(()=>{ if(me===w) newGame(w); }, 1700);          // winner starts the board
+  setTimeout(()=>{ if(rps && rps.rid===rid) newGame(w); }, 4200);       // failsafe if winner is away
+}
+function onRpsMessage(payload){
+  let m; try{ m = JSON.parse(payload.toString()); }catch(e){ return; }
+  if(typeof m.rid!=='number' || !m.picks) return;
+  if(m.cancel){ if(rps && m.rid>=rps.rid){ rps=null; closeRps(); } return; }
+  const clean = v => (v==='R'||v==='P'||v==='S') ? v : null;
+  const inP = clean(m.picks.P), inS = clean(m.picks.S);
+  if(!rps || m.rid > rps.rid){
+    if(m.rid <= rpsDoneRid) return;            // stale
+    if(inP && inS) return;                     // already-finished round (e.g. seen on reload)
+    rps = {rid:m.rid, picks:{P:inP, S:inS}};
+    if(me) openRps();
+  }else if(m.rid === rps.rid){
+    if(inP) rps.picks.P = rps.picks.P || inP;
+    if(inS) rps.picks.S = rps.picks.S || inS;
+    renderRps();
+  }else return;
+  resolveRps();
+}
+rbtns.forEach(b=> b.addEventListener('click', ()=>pickRps(b.dataset.c)));
+document.getElementById('rcancel').addEventListener('click', cancelRps);
 
 /* ---------------- networking & presence ---------------- */
 let client = null, brokerIdx = 0, errCount = 0, linked = false;
@@ -547,7 +654,7 @@ function connect(){
   client.on('connect', ()=>{
     errCount = 0;
     setLink('on');
-    client.subscribe([TOPIC, TOPIC_H], {qos:1});
+    client.subscribe([TOPIC, TOPIC_H, TOPIC_R], {qos:1});
     client.subscribe(TOPIC_P, {qos:0});
     heartbeat();                 // announce ourselves right away
   });
@@ -564,6 +671,7 @@ function connect(){
   });
   client.on('message', (t, payload)=>{
     if(t === TOPIC_H){ onHistMessage(payload); return; }
+    if(t === TOPIC_R){ onRpsMessage(payload); return; }
     if(t === TOPIC_P){
       try{ const m = JSON.parse(payload.toString());
         if(m.role==='P'||m.role==='S'){ lastSeen[m.role] = Date.now(); updatePresence(); }
@@ -613,11 +721,8 @@ function pick(role){
 document.getElementById('pickP').addEventListener('click', ()=>pick('P'));
 document.getElementById('pickS').addEventListener('click', ()=>pick('S'));
 
-const modalEl = document.getElementById('modal');
-document.getElementById('btnNew').addEventListener('click', ()=>modalEl.classList.remove('hidden'));
-document.getElementById('btnAgain').addEventListener('click', ()=>modalEl.classList.remove('hidden'));
-document.getElementById('modalYes').addEventListener('click', ()=>{ modalEl.classList.add('hidden'); newGame(); });
-document.getElementById('modalNo').addEventListener('click', ()=>modalEl.classList.add('hidden'));
+document.getElementById('btnNew').addEventListener('click', startRps);
+document.getElementById('btnAgain').addEventListener('click', startRps);
 
 if(!me) selectEl.classList.remove('hidden');
 renderBoard(null,false); renderHud(); renderScoresPage(); updatePresence(); scheduleAutoPass();
