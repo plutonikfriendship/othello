@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#242424">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Othello">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>PLUM ♥ SANNAMY OTHELLO</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8" shape-rendering="crispEdges"><rect width="8" height="8" fill="%23242424"/><rect x="2" y="1" width="4" height="6" fill="%238d3fc0"/><rect x="1" y="2" width="6" height="4" fill="%238d3fc0"/><rect x="2" y="2" width="2" height="1" fill="%23c07ce8"/></svg>'>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -181,6 +186,19 @@
     padding:0 11px;cursor:pointer;border-radius:18px}
   #chatsend{font-family:inherit;font-size:8px;background:var(--gold);color:#221a06;border:0;padding:0 13px;cursor:pointer;letter-spacing:1px;border-radius:18px}
 
+  /* add-to-home-screen popup */
+  #install{position:fixed;inset:0;z-index:48;background:rgba(13,13,13,.88);display:flex;
+    align-items:center;justify-content:center;padding:20px}
+  #install.hidden{display:none}
+  #install .panel{display:flex;flex-direction:column;align-items:center;gap:14px;
+    border:3px solid var(--gold);background:#161616;padding:22px 18px;width:90%;max-width:300px;text-align:center}
+  #install .ico{width:56px;height:56px}
+  #install .ico svg{width:100%;height:100%;display:block}
+  .ititle{font-size:10px;color:var(--gold);letter-spacing:1px;line-height:1.9}
+  .isub{font-size:7px;color:#9a9a9a;line-height:2}
+  #installno{font-family:inherit;font-size:7px;color:#6a6890;background:none;border:0;
+    text-decoration:underline;cursor:pointer;padding:4px}
+
   #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:70;
     font-size:8px;background:#1a1938;border:3px solid var(--red);color:var(--red);
     padding:9px 12px;display:none}
@@ -258,6 +276,16 @@
   </div>
 </div>
 
+<div id="install" class="hidden">
+  <div class="panel">
+    <span class="ico" id="installico"></span>
+    <div class="ititle">ADD TO HOME SCREEN?</div>
+    <div class="isub">PLAYS LIKE AN APP - FULL SCREEN, ONE TAP TO OPEN, AND IT STILL UPDATES BY ITSELF.</div>
+    <button class="btn flat" id="installadd">ADD</button>
+    <button id="installno">NOT NOW</button>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script src="https://unpkg.com/mqtt@5/dist/mqtt.min.js"></script>
@@ -326,6 +354,16 @@ const RPS_SVG = {
 const CHAT_SVG = bmpSVG(
   ['.######.','########','#.#.#.##','########','########','.######.','.##.....','#.......'],
   {'#':'#221a06'});
+const APPICON_SVG = (()=>{                 // reversi piece: plum left half, orange right half
+  const PAL = {P:{'#':'#8d3fc0','l':'#c07ce8','d':'#4d1675'}, O:{'#':'#de720c','l':'#f5a44e','d':'#8a4708'}};
+  let r='';
+  for(let y=0;y<8;y++)for(let x=0;x<8;x++){
+    const ch = DISC_ROWS[y][x];
+    if(ch==='.') continue;
+    r += `<rect x="${x}" y="${y}" width="1" height="1" fill="${(x<4?PAL.P:PAL.O)[ch]}"/>`;
+  }
+  return `<svg viewBox="0 0 8 8" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">${r}</svg>`;
+})();
 
 document.getElementById('heart').innerHTML  = HEART_SVG;
 document.getElementById('heart2').innerHTML = HEART_SVG;
@@ -336,6 +374,7 @@ document.getElementById('gR').innerHTML = RPS_SVG.R;
 document.getElementById('gP').innerHTML = RPS_SVG.P;
 document.getElementById('gS').innerHTML = RPS_SVG.S;
 document.getElementById('chaticon').innerHTML = CHAT_SVG;
+document.getElementById('installico').innerHTML = APPICON_SVG;
 
 /* ---------------- othello rules ---------------- */
 const DIRS = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
@@ -875,12 +914,38 @@ function pick(role){
   chatBtn.classList.add('show');
   heartbeat(); updatePresence();
   renderBoard(null,false); renderHud(); scheduleAutoPass();
+  setTimeout(maybeShowInstall, 800);     // offer install once they've picked a player
 }
 document.getElementById('pickP').addEventListener('click', ()=>pick('P'));
 document.getElementById('pickS').addEventListener('click', ()=>pick('S'));
 
 document.getElementById('btnNew').addEventListener('click', startRps);
 document.getElementById('btnAgain').addEventListener('click', startRps);
+
+/* ---------------- add-to-home-screen (PWA install) ---------------- */
+let deferredPrompt = null;
+const installEl = document.getElementById('install');
+const INSTALL_KEY = 'oth-install-dismissed';
+const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+const dismissedRecently = () => (Date.now() - (+localStorage.getItem(INSTALL_KEY) || 0)) < 7*24*3600*1000;
+const selectVisible = () => !document.getElementById('select').classList.contains('hidden');
+function maybeShowInstall(){
+  if(deferredPrompt && !isStandalone() && !dismissedRecently() && !selectVisible())
+    installEl.classList.remove('hidden');
+}
+window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); deferredPrompt = e; setTimeout(maybeShowInstall, 800); });
+window.addEventListener('appinstalled', ()=>{ installEl.classList.add('hidden'); deferredPrompt = null; });
+document.getElementById('installadd').addEventListener('click', async ()=>{
+  installEl.classList.add('hidden');
+  if(!deferredPrompt) return;
+  deferredPrompt.prompt();
+  try{ await deferredPrompt.userChoice; }catch(e){}
+  deferredPrompt = null;
+});
+document.getElementById('installno').addEventListener('click', ()=>{
+  installEl.classList.add('hidden');
+  localStorage.setItem(INSTALL_KEY, String(Date.now()));   // snooze 7 days
+});
 
 if(!me) selectEl.classList.remove('hidden');
 chatBtn.classList.toggle('show', !!me);
