@@ -165,7 +165,9 @@
   .cmsg{display:flex;flex-direction:column;max-width:82%}
   .cmsg.me{align-self:flex-end;align-items:flex-end}
   .cmsg.them{align-self:flex-start;align-items:flex-start}
-  .cbub{font-size:9px;line-height:1.7;padding:8px 9px;word-break:break-word;white-space:pre-wrap}
+  .cbub{font-size:9px;line-height:1.7;padding:9px 11px;word-break:break-word;white-space:pre-wrap;border-radius:12px}
+  .cmsg.me .cbub{border-bottom-right-radius:3px}
+  .cmsg.them .cbub{border-bottom-left-radius:3px}
   .cmsg.p .cbub{background:#34215a;color:var(--plum-lite)}
   .cmsg.s .cbub{background:#4a2a08;color:#f7b86a}
   .cbub.cheart{background:none;padding:2px 4px;font-size:20px;color:#ff4f7d}
@@ -173,11 +175,11 @@
   #chattyping{font-size:7px;color:#9a9a9a;min-height:11px;padding:3px 4px;letter-spacing:1px;visibility:hidden}
   .cinput{display:flex;gap:6px;align-items:stretch;padding-top:8px;border-top:1px solid rgba(232,230,218,.2)}
   #chatinput{flex:1;min-width:0;font-family:inherit;font-size:9px;color:var(--white);background:#1c1c1c;
-    border:2px solid #444;padding:10px 9px}
+    border:2px solid #444;padding:10px 13px;border-radius:18px}
   #chatinput::placeholder{color:#5a5a5a}
   #chatheart{font-family:inherit;background:none;border:2px solid #5a2030;color:#ff4f7d;font-size:14px;
-    padding:0 9px;cursor:pointer}
-  #chatsend{font-family:inherit;font-size:8px;background:var(--gold);color:#221a06;border:0;padding:0 11px;cursor:pointer;letter-spacing:1px}
+    padding:0 11px;cursor:pointer;border-radius:18px}
+  #chatsend{font-family:inherit;font-size:8px;background:var(--gold);color:#221a06;border:0;padding:0 13px;cursor:pointer;letter-spacing:1px;border-radius:18px}
 
   #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:70;
     font-size:8px;background:#1a1938;border:3px solid var(--red);color:var(--red);
@@ -374,10 +376,11 @@ const HKEY = 'oth-hist-' + ROOM;
 let history = [];   // [{k, t, p, s, w}] newest first
 try{ history = JSON.parse(localStorage.getItem(HKEY)) || []; }catch(e){}
 
+const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+function fmtDate(t){ const d = new Date(t); return d.getDate()+' '+MONTHS[d.getMonth()]+' '+d.getFullYear(); }
 function fmt(t){
   const d = new Date(t);
-  return z2(d.getDate())+'/'+z2(d.getMonth()+1)+'/'+String(d.getFullYear()).slice(2)
-       + ' ' + z2(d.getHours())+':'+z2(d.getMinutes());
+  return fmtDate(t) + ' ' + z2(d.getHours())+':'+z2(d.getMinutes());
 }
 function saveHist(){
   try{ localStorage.setItem(HKEY, JSON.stringify(history)); }catch(e){}
@@ -442,7 +445,7 @@ const chatPanel  = document.getElementById('chatpanel');
 const chatListEl = document.getElementById('chatlist');
 const chatInput  = document.getElementById('chatinput');
 const chatTypeEl = document.getElementById('chattyping');
-const chatTime = t => { const d = new Date(t); return z2(d.getHours())+':'+z2(d.getMinutes()); };
+const chatTime = t => { const d = new Date(t); return fmtDate(t)+' '+z2(d.getHours())+':'+z2(d.getMinutes()); };
 
 function saveChat(){ try{ localStorage.setItem(CKEY, JSON.stringify(chat)); }catch(e){} }
 function publishChat(){
