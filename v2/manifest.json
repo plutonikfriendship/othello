@@ -4,7 +4,7 @@
   "description": "Two-phone 8-bit Othello for Mr. Plum and Sannamy.",
   "start_url": ".",
   "scope": ".",
-  "display": "standalone",
+  "display": "fullscreen",
   "orientation": "portrait",
   "background_color": "#242424",
   "theme_color": "#242424",
