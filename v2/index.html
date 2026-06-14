@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#242424">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Othello">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -32,6 +32,10 @@
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   html{background:var(--bg)}
+  /* opaque strip behind the OS status bar so the clock/battery always sit on a
+     clean theme-coloured bar (not on the black title) regardless of scroll */
+  body::before{content:'';position:fixed;top:0;left:0;right:0;
+    height:env(safe-area-inset-top);background:var(--bg);z-index:36}
   body{
     background:var(--bg);
     color:var(--white);
@@ -39,7 +43,7 @@
     display:flex;flex-direction:column;align-items:center;
     gap:10px;
     min-height:100dvh;
-    padding:0 8px calc(60px + max(14px, env(safe-area-inset-bottom)));
+    padding:env(safe-area-inset-top) 8px calc(60px + max(14px, env(safe-area-inset-bottom)));
     user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
     image-rendering:pixelated;
   }
@@ -47,10 +51,10 @@
   h1 svg{width:14px;height:14px}
   .sub{font-size:8px;color:var(--gold);margin-top:6px;text-align:center;letter-spacing:2px}
   header{
-    position:sticky;top:0;z-index:30;align-self:stretch;order:-3;
+    position:sticky;top:env(safe-area-inset-top);z-index:30;align-self:stretch;order:-3;
     display:flex;flex-direction:column;align-items:center;
     background:#000;margin:0 -8px;
-    padding:max(10px,env(safe-area-inset-top)) 8px 11px;
+    padding:11px 8px;
     box-shadow:0 3px 0 rgba(0,0,0,.45);
   }
 
@@ -247,11 +251,11 @@
   #chatpanel{position:fixed;inset:0;z-index:45;background:rgba(13,13,13,.98);display:flex;flex-direction:column;
     padding:max(12px,env(safe-area-inset-top)) 10px max(10px,env(safe-area-inset-bottom))}
   #chatpanel.hidden{display:none}
-  .chead{display:flex;align-items:center;justify-content:space-between;
+  .chead{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;
     border-bottom:1px solid rgba(232,230,218,.35);padding-bottom:10px}
   .chead .ctitle{font-size:11px;color:var(--gold);letter-spacing:1px}
   #chatclose{font-family:inherit;font-size:9px;color:var(--white);background:none;border:0;cursor:pointer;padding:4px 6px}
-  #chatlist{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:9px;padding:10px 2px}
+  #chatlist{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:9px;padding:10px 2px}
   .cempty{font-size:8px;color:#6a6890;text-align:center;margin:auto;line-height:2.2}
   .cmsg{display:flex;flex-direction:column;max-width:82%}
   .cmsg.me{align-self:flex-end;align-items:flex-end}
@@ -274,7 +278,7 @@
   .cbub.cheart svg{width:26px;height:26px;display:block}
   .ctime{font-size:6px;color:#6a6890;margin-top:3px;letter-spacing:1px}
   #chattyping{font-size:7px;color:#9a9a9a;min-height:11px;padding:3px 4px;letter-spacing:1px;visibility:hidden}
-  .cinput{display:flex;gap:6px;align-items:stretch;padding-top:8px;border-top:1px solid rgba(232,230,218,.2)}
+  .cinput{flex-shrink:0;display:flex;gap:6px;align-items:stretch;padding-top:8px;border-top:1px solid rgba(232,230,218,.2)}
   #chatinput{flex:1;min-width:0;font-family:inherit;font-size:9px;color:var(--white);background:#1c1c1c;
     border:2px solid #444;padding:10px 13px}
   #chatinput::placeholder{color:#5a5a5a}
@@ -755,8 +759,24 @@ function onTypingMessage(payload){
     if((m.role==='P'||m.role==='S') && m.role!==me){ theirTyping = m.on ? Date.now() : 0; renderChat(); }
   }catch(e){}
 }
-function openChat(){ chatOpen=true; unread=0; chatPanel.classList.remove('hidden'); renderChat(); setTimeout(()=>chatInput.focus(),60); }
-function closeChat(){ chatOpen=false; chatPanel.classList.add('hidden'); publishTyping(false); renderChat(); }
+// keep the chat panel within the *visible* viewport so the on-screen keyboard
+// never pushes the header (CLOSE X) or input off-screen
+function fitChatToViewport(){
+  const vv = window.visualViewport;
+  if(!vv || chatPanel.classList.contains('hidden')){
+    chatPanel.style.top = chatPanel.style.height = chatPanel.style.bottom = '';
+    return;
+  }
+  chatPanel.style.top = vv.offsetTop + 'px';
+  chatPanel.style.height = vv.height + 'px';
+  chatPanel.style.bottom = 'auto';
+}
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize', fitChatToViewport);
+  window.visualViewport.addEventListener('scroll', fitChatToViewport);
+}
+function openChat(){ chatOpen=true; unread=0; chatPanel.classList.remove('hidden'); renderChat(); fitChatToViewport(); setTimeout(()=>chatInput.focus(),60); }
+function closeChat(){ chatOpen=false; chatPanel.classList.add('hidden'); fitChatToViewport(); publishTyping(false); renderChat(); }
 chatBtn.addEventListener('click', openChat);
 document.getElementById('chatclose').addEventListener('click', closeChat);
 document.getElementById('chatsend').addEventListener('click', ()=>sendChat(chatInput.value));
