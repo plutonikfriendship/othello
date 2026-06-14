@@ -39,24 +39,39 @@
     display:flex;flex-direction:column;align-items:center;
     gap:10px;
     min-height:100dvh;
-    padding:max(10px, env(safe-area-inset-top)) 8px calc(60px + max(14px, env(safe-area-inset-bottom)));
+    padding:0 8px calc(60px + max(14px, env(safe-area-inset-bottom)));
     user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
     image-rendering:pixelated;
   }
   h1{font-size:11px;letter-spacing:1px;display:flex;align-items:center;gap:7px;margin-top:4px}
   h1 svg{width:14px;height:14px}
   .sub{font-size:8px;color:var(--gold);margin-top:6px;text-align:center;letter-spacing:2px}
+  header{
+    position:sticky;top:0;z-index:30;align-self:stretch;order:-3;
+    display:flex;flex-direction:column;align-items:center;
+    background:#000;margin:0 -8px;
+    padding:max(10px,env(safe-area-inset-top)) 8px 11px;
+    box-shadow:0 3px 0 rgba(0,0,0,.45);
+  }
 
-  .scores{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;justify-items:center;
-    column-gap:12px;row-gap:14px;margin-top:18px}
-  .side{display:inline-flex;flex-direction:column;align-items:center;gap:3px;font-size:15px;
-    padding:7px 10px}
+  .scores{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;
+    column-gap:10px;row-gap:2px;margin-top:18px;order:-2;
+    width:calc(8*var(--cell) + 18px);max-width:94vw}
+  /* names hug the outer edges so they line up with each side's stats */
+  #sideP,#scoreP{justify-self:start}
+  #sideS,#scoreS{justify-self:end}
+  .side{position:relative;display:inline-flex;flex-direction:column;align-items:center;font-size:15px;
+    padding:7px 2px}
   .pname.plum{color:var(--plum-lite)}
   .pname.orange{color:var(--pink)}
-  .onl{font-size:6px;letter-spacing:1px;color:#40e860;visibility:hidden}
+  /* ONLINE floats just above the name so it doesn't shift the name's vertical
+     center — keeps the "VS" aligned to the names, not name+ONLINE */
+  .onl{position:absolute;bottom:100%;margin-bottom:2px;
+    font-size:6px;letter-spacing:1px;color:#40e860;white-space:nowrap;visibility:hidden}
+  #onlP{left:0}        /* hug the same edge as each name */
+  #onlS{right:0}
   .onl.on{visibility:visible}
-  .vs{font-size:8px;color:#6a6890}
-  .bigscore{font-size:18px;color:var(--white)}
+  .bigscore{font-size:27px;color:var(--white)}
   .bigscore.plum{color:var(--plum-lite)}
   .bigscore.orange{color:var(--pink)}
   .side.active .pname, .bigscore.turn{animation:blink 1s steps(2) infinite}
@@ -88,12 +103,17 @@
   #overlay{position:absolute;inset:0;background:rgba(10,9,30,.86);display:flex;
     align-items:center;justify-content:center;z-index:10}
   #overlay.hidden{display:none}
-  #overlay .panel{text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px;
-    border:4px solid var(--gold);background:#1a1938;padding:22px 18px;
+  #overlay .panel{text-align:center;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:18px;
+    border:4px solid var(--gold);background:#1a1938;padding:18px;
+    width:80%;max-width:300px;aspect-ratio:1;
     box-shadow:6px 6px 0 rgba(0,0,0,.5)}
-  #overlay .panel .crown svg{width:42px;height:26px}
-  #overText{font-size:10px;line-height:1.8;color:var(--white)}
+  #overlay .panel .crown svg{width:48px;height:30px}
+  #overlay .panel .crown{animation:wcbob 1.5s ease-in-out infinite}
+  #overText{font-size:11px;line-height:1.9;color:var(--white);animation:wcsway 1.9s ease-in-out infinite}
   #overText b{color:var(--gold);font-weight:normal}
+  @keyframes wcbob{0%,100%{transform:translateY(-6px) scale(1)}50%{transform:translateY(6px) scale(1.08)}}
+  @keyframes wcsway{0%,100%{transform:translateX(-7px) rotate(-2.5deg)}50%{transform:translateX(7px) rotate(2.5deg)}}
 
   footer{display:flex;align-items:center;gap:12px;margin-top:14px}
 
@@ -119,11 +139,9 @@
   /* high scores under the board */
   #scoresec{width:calc(8*var(--cell) + 18px);max-width:94vw;display:flex;
     flex-direction:column;gap:8px;margin-top:20px}
-  .shead{display:flex;justify-content:space-between;align-items:center;
-    font-size:8px;color:var(--gold);letter-spacing:1px;
-    border-bottom:1px solid rgba(232,230,218,.35);padding-bottom:8px}
-  #tally{font-size:9px;display:flex;align-items:center;gap:5px;color:var(--white)}
-  #tally svg{width:11px;height:11px}
+  .shead{display:flex;justify-content:center;text-align:center;align-items:center;
+    font-size:8px;color:var(--gold);letter-spacing:1px;line-height:1.9;
+    border-bottom:1px solid rgba(232,230,218,.35);padding-bottom:10px}
   #histlist{display:flex;flex-direction:column;gap:6px}
   .hrow{padding:4px 2px;display:flex;
     align-items:center;justify-content:space-between;flex-shrink:0}
@@ -138,20 +156,47 @@
   body:not(.playing) #boardwrap{display:none}
   body:not(.playing) #substatus{display:none}
   body:not(.playing) .bigscore{display:none}
-  body.playing #stats{display:none}
+  body.playing #stats, body.playing #totals{display:none}
+  body:not(.playing) #btnStats{display:none}   /* STATS button only while playing (home already shows stats) */
+  /* on the home page the buttons sit right under the player names, above the stats */
+  body:not(.playing) footer{order:-1;margin-bottom:22px}
   #btnResume{display:none}
   #btnResume.on{display:inline-block}
   body.playing #btnResume{display:none}
 
   /* stats panel (home only) */
-  #stats{width:calc(8*var(--cell) + 18px);max-width:94vw;display:flex;flex-direction:column;gap:7px;margin-top:18px}
-  .stathead{font-size:8px;color:var(--gold);letter-spacing:1px;
-    border-bottom:1px solid rgba(232,230,218,.35);padding-bottom:8px}
-  .statrow{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:8px;padding:2px 2px}
+  #stats,#totals{width:calc(8*var(--cell) + 18px);max-width:94vw;display:flex;flex-direction:column;gap:7px;margin-top:18px}
+  .stathead{font-size:8px;color:var(--gold);letter-spacing:1px;text-align:center;line-height:1.9;
+    border-bottom:1px solid rgba(232,230,218,.35);padding-bottom:10px}
+  #statbody{display:flex;flex-direction:column}
+  /* per-player "versus" stat. 5 columns:
+     [Plum data @ left edge] [crown] [label] [crown] [Sannamy data @ right edge]
+     The two crown columns are fixed width so winner-crowns line up vertically. */
+  /* fixed column widths so every row shares the same geometry (crown columns
+     stay vertically aligned). Value on row 1, date on row 2; the label + crowns
+     span both rows and centre, sitting at the vertical middle of value+date. */
+  .vstat{display:grid;grid-template-columns:1fr 14px 88px 14px 1fr;align-items:center;
+    column-gap:6px;padding:10px 2px;border-top:1px solid rgba(232,230,218,.08)}
+  .vstat:first-child{border-top:0}
+  /* each side stacks value+date in one cell; align-items:center then centres the
+     label & crowns against that whole stack (the vertical middle of value+date) */
+  .vside{display:flex;flex-direction:column;gap:3px;min-width:0}
+  .vside.p{grid-column:1;align-items:flex-start;color:var(--plum-lite)}
+  .vside.s{grid-column:5;align-items:flex-end;color:var(--pink)}
+  .vval{font-size:11px;white-space:nowrap}
+  .vwhen{font-size:6px;color:#6a6890;letter-spacing:1px;line-height:1.6;text-align:left}
+  .vside.s .vwhen{text-align:right}
+  .vcrown{display:flex;align-items:center;justify-content:center}
+  .vcrown.l{grid-column:2}
+  .vcrown.r{grid-column:4}
+  .vcrown svg{width:13px;height:8px}
+  .vslabel{grid-column:3;font-size:7px;color:#9a9a9a;letter-spacing:1px;text-align:center;line-height:1.7}
+  /* shared totals — label centered, value centered on the next line */
+  .statrow{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:8px;text-align:center;
+    padding:9px 2px;border-top:1px solid rgba(232,230,218,.08)}
+  .statrow:first-child{border-top:0}
   .statlabel{color:#9a9a9a;letter-spacing:1px}
-  .statval{color:var(--white);display:flex;align-items:center;gap:5px;white-space:nowrap}
-  .statval svg{width:11px;height:11px}
-  .statval .crn svg{width:13px;height:8px}
+  .statval{color:var(--white)}
 
   /* rock-paper-scissors "who starts" card */
   #rps{position:absolute;inset:0;background:rgba(13,13,13,.95);z-index:20;display:flex;
@@ -172,14 +217,33 @@
 
   /* chat */
   #chatbtn{position:fixed;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:40;
-    width:46px;height:46px;background:var(--gold);border:0;cursor:pointer;display:none;
-    align-items:center;justify-content:center;border-radius:14px}
+    width:46px;height:46px;background:none;border:0;padding:0;cursor:pointer;display:none;
+    align-items:center;justify-content:center}
   #chatbtn.show{display:flex}
+  /* 8-bit pixelated rounded box (stepped corners) holding the chat icon */
+  .chatbox{width:46px;height:46px;background:var(--gold);display:flex;align-items:center;justify-content:center;
+    clip-path:polygon(
+      8px 0,calc(100% - 8px) 0,
+      calc(100% - 8px) 4px,calc(100% - 4px) 4px,calc(100% - 4px) 8px,100% 8px,
+      100% calc(100% - 8px),
+      calc(100% - 4px) calc(100% - 8px),calc(100% - 4px) calc(100% - 4px),calc(100% - 8px) calc(100% - 4px),calc(100% - 8px) 100%,
+      8px 100%,
+      8px calc(100% - 4px),4px calc(100% - 4px),4px calc(100% - 8px),0 calc(100% - 8px),
+      0 8px,
+      4px 8px,4px 4px,8px 4px)}
   #chatbtn svg{width:24px;height:24px;display:block}
   #chatbtn.hasnew{animation:fabhover .9s ease-in-out infinite alternate}
   @keyframes fabhover{from{transform:translateY(0) scale(1)}to{transform:translateY(-7px) scale(1.13)}}
-  #chatbadge{position:absolute;top:-7px;right:-7px;min-width:17px;height:17px;padding:0 3px;
-    background:var(--red);color:#fff;font-size:7px;display:none;align-items:center;justify-content:center}
+  /* round-but-8-bit badge: stepped-octagon clip = pixelated circle */
+  #chatbadge{position:absolute;top:-9px;right:-9px;min-width:23px;height:23px;padding:0 4px;
+    background:var(--red);color:#fff;font-family:'Press Start 2P',monospace;font-size:9px;line-height:1;
+    display:none;align-items:center;justify-content:center;
+    clip-path:polygon(
+      33% 0,67% 0,
+      67% 6%,83% 6%,83% 17%,94% 17%,94% 33%,100% 33%,
+      100% 67%,94% 67%,94% 83%,83% 83%,83% 94%,67% 94%,67% 100%,
+      33% 100%,33% 94%,17% 94%,17% 83%,6% 83%,6% 67%,0 67%,
+      0 33%,6% 33%,6% 17%,17% 17%,17% 6%,33% 6%)}
   #chatpanel{position:fixed;inset:0;z-index:45;background:rgba(13,13,13,.98);display:flex;flex-direction:column;
     padding:max(12px,env(safe-area-inset-top)) 10px max(10px,env(safe-area-inset-bottom))}
   #chatpanel.hidden{display:none}
@@ -192,21 +256,32 @@
   .cmsg{display:flex;flex-direction:column;max-width:82%}
   .cmsg.me{align-self:flex-end;align-items:flex-end}
   .cmsg.them{align-self:flex-start;align-items:flex-start}
-  .cbub{font-size:9px;line-height:1.7;padding:9px 11px;word-break:break-word;white-space:pre-wrap;border-radius:12px}
-  .cmsg.me .cbub{border-bottom-right-radius:3px}
-  .cmsg.them .cbub{border-bottom-left-radius:3px}
+  .cbub{font-size:9px;line-height:1.7;padding:9px 11px;word-break:break-word;white-space:pre-wrap}
+  /* 8-bit pixelated rounded box (stepped corners) — app-wide standard for
+     boxes & flat buttons (chat bubbles, inputs, NEW GAME / STATS / RESUME …) */
+  .pixbox, .btn.flat{clip-path:polygon(
+    6px 0,calc(100% - 6px) 0,
+    calc(100% - 6px) 3px,calc(100% - 3px) 3px,calc(100% - 3px) 6px,100% 6px,
+    100% calc(100% - 6px),
+    calc(100% - 3px) calc(100% - 6px),calc(100% - 3px) calc(100% - 3px),calc(100% - 6px) calc(100% - 3px),calc(100% - 6px) 100%,
+    6px 100%,
+    6px calc(100% - 3px),3px calc(100% - 3px),3px calc(100% - 6px),0 calc(100% - 6px),
+    0 6px,
+    3px 6px,3px 3px,6px 3px)}
   .cmsg.p .cbub{background:#34215a;color:var(--plum-lite)}
   .cmsg.s .cbub{background:#4a2a08;color:#f7b86a}
-  .cbub.cheart{background:none;padding:2px 4px;font-size:20px;color:#ff4f7d}
+  .cbub.cheart{background:none;padding:2px 4px;display:flex;gap:3px}
+  .cbub.cheart svg{width:26px;height:26px;display:block}
   .ctime{font-size:6px;color:#6a6890;margin-top:3px;letter-spacing:1px}
   #chattyping{font-size:7px;color:#9a9a9a;min-height:11px;padding:3px 4px;letter-spacing:1px;visibility:hidden}
   .cinput{display:flex;gap:6px;align-items:stretch;padding-top:8px;border-top:1px solid rgba(232,230,218,.2)}
   #chatinput{flex:1;min-width:0;font-family:inherit;font-size:9px;color:var(--white);background:#1c1c1c;
-    border:2px solid #444;padding:10px 13px;border-radius:18px}
+    border:2px solid #444;padding:10px 13px}
   #chatinput::placeholder{color:#5a5a5a}
-  #chatheart{font-family:inherit;background:none;border:2px solid #5a2030;color:#ff4f7d;font-size:14px;
-    padding:0 11px;cursor:pointer;border-radius:18px}
-  #chatsend{font-family:inherit;font-size:8px;background:var(--gold);color:#221a06;border:0;padding:0 13px;cursor:pointer;letter-spacing:1px;border-radius:18px}
+  #chatheart{font-family:inherit;background:none;border:0;
+    padding:0 8px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  #chatheart svg{width:32px;height:32px;display:block}
+  #chatsend{font-family:inherit;font-size:8px;background:var(--gold);color:#221a06;border:0;padding:0 13px;cursor:pointer;letter-spacing:1px}
 
   /* add-to-home-screen popup */
   #install{position:fixed;inset:0;z-index:48;background:rgba(13,13,13,.88);display:flex;
@@ -231,14 +306,14 @@
 </head>
 <body>
 
-<header style="display:flex;flex-direction:column;align-items:center;margin-top:22px">
+<header>
   <h1>MR.PLUM <span id="heart"></span> SANNAMY</h1>
   <div class="sub">* OTHELLO *</div>
 </header>
 
 <div class="scores">
   <div class="side" id="sideP"><span class="onl" id="onlP">ONLINE</span><span class="pname plum">MR.PLUM</span></div>
-  <div class="vs">VS</div>
+  <div></div>
   <div class="side" id="sideS"><span class="onl" id="onlS">ONLINE</span><span class="pname orange">SANNAMY</span></div>
   <div class="bigscore plum" id="scoreP">02</div>
   <div></div>
@@ -246,11 +321,13 @@
 </div>
 
 <section id="stats">
-  <div class="stathead">STATS</div>
-  <div class="statrow"><span class="statlabel">STREAK</span><span class="statval" id="stStreak">–</span></div>
-  <div class="statrow"><span class="statlabel">BIGGEST COMEBACK</span><span class="statval" id="stComeback">–</span></div>
-  <div class="statrow"><span class="statlabel">QUICKEST WIN</span><span class="statval" id="stQuick">–</span></div>
-  <div class="statrow"><span class="statlabel">TIME PLAYED</span><span class="statval" id="stTime">–</span></div>
+  <div class="stathead">STATISTICS</div>
+  <div id="statbody"></div>
+</section>
+
+<section id="totals">
+  <div class="stathead">TOTALS</div>
+  <div id="totalbody"></div>
 </section>
 
 <div id="substatus"></div>
@@ -261,8 +338,6 @@
     <div class="panel">
       <span class="crown" id="crown"></span>
       <div id="overText"></div>
-      <button class="btn flat" id="btnAgain">NEW GAME</button>
-      <button class="btn flat" id="btnHome" style="background:#6a6890;color:#fff">HOME</button>
     </div>
   </div>
   <div id="rps" class="hidden">
@@ -283,10 +358,11 @@
 <footer>
   <button class="btn flat" id="btnResume" style="font-size:8px;padding:9px 10px">RESUME GAME</button>
   <button class="btn flat" id="btnNew" style="font-size:8px;padding:9px 10px">NEW GAME</button>
+  <button class="btn flat" id="btnStats" style="font-size:8px;padding:9px 10px;background:#6a6890;color:#fff">STATS</button>
 </footer>
 
 <section id="scoresec">
-  <div class="shead"><span>HIGH SCORES</span><span id="tally"></span></div>
+  <div class="shead"><span>HISTORY</span></div>
   <div id="histlist"></div>
 </section>
 
@@ -299,15 +375,15 @@
   <div class="small">YOUR CHOICE IS SAVED ON THIS PHONE.<br>PICK A DIFFERENT PLAYER ON EACH PHONE!</div>
 </div>
 
-<button id="chatbtn"><span id="chaticon"></span><span id="chatbadge">0</span></button>
+<button id="chatbtn"><span class="chatbox"><span id="chaticon"></span></span><span id="chatbadge">0</span></button>
 <div id="chatpanel" class="hidden">
   <div class="chead"><span class="ctitle">CHAT</span><button id="chatclose">CLOSE X</button></div>
   <div id="chatlist"></div>
   <div id="chattyping"></div>
   <div class="cinput">
-    <input id="chatinput" type="text" maxlength="240" placeholder="MESSAGE..." enterkeyhint="send" autocomplete="off">
-    <button id="chatheart" title="send a heart">&#9829;</button>
-    <button id="chatsend">SEND</button>
+    <input id="chatinput" class="pixbox" type="text" maxlength="240" placeholder="MESSAGE..." enterkeyhint="send" autocomplete="off">
+    <button id="chatheart" title="send a heart"></button>
+    <button id="chatsend" class="pixbox">SEND</button>
   </div>
 </div>
 
@@ -411,6 +487,7 @@ document.getElementById('gR').innerHTML = RPS_SVG.R;
 document.getElementById('gP').innerHTML = RPS_SVG.P;
 document.getElementById('gS').innerHTML = RPS_SVG.S;
 document.getElementById('chaticon').innerHTML = CHAT_SVG;
+document.getElementById('chatheart').innerHTML = HEART_SVG;
 document.getElementById('installico').innerHTML = APPICON_SVG;
 
 /* ---------------- othello rules ---------------- */
@@ -444,6 +521,9 @@ const isOver = board => !legalMoves(board,'P').length && !legalMoves(board,'S').
 /* ---------------- state ---------------- */
 let me    = localStorage.getItem('othello-role') || null;   // 'P' | 'S' | null
 let state = {seq:0, board:initialBoard(), turn:'P', last:-1, passed:null};
+// "time played" = active play, not wall-clock: we sum the gap between moves but
+// cap each gap, so long idle/away stretches in this turn-based game don't count.
+const MOVE_CAP = 300000;   // 5 min — longer thinking/away time is treated as idle
 let passTimer = null;
 let jingledSeq = -1;
 let worst = {P:0, S:0};        // most negative disc-margin each player hit this game (for comeback)
@@ -496,30 +576,75 @@ function onHistMessage(payload){
   }catch(e){}
 }
 
-const tallyEl = document.getElementById('tally');
 const histEl  = document.getElementById('histlist');
 function renderStats(){
-  // current streak (consecutive same winner, newest first)
-  const byTime = [...history].sort((a,b)=>b.t-a.t);
-  let role=null, n=0;
-  for(const e of byTime){ if(!e.w) break; if(role===null){ role=e.w; n=1; } else if(e.w===role) n++; else break; }
-  document.getElementById('stStreak').innerHTML = role
-    ? '<span class="crn">'+CROWN_SVG+'</span> '+DISC_SVG[role]+' x'+n : '–';
-  // biggest comeback
-  let best=null; history.forEach(e=>{ if(typeof e.c==='number' && e.c>0 && (!best||e.c>best.c)) best=e; });
-  document.getElementById('stComeback').innerHTML = best ? DISC_SVG[best.w]+' +'+best.c : '–';
-  // quickest win
-  let q=null; history.forEach(e=>{ if(e.w && typeof e.d==='number' && e.d>0 && (!q||e.d<q.d)) q=e; });
-  document.getElementById('stQuick').innerHTML = q ? fmtDur(q.d)+' '+DISC_SVG[q.w] : '–';
-  // total time played
-  let tot=0, any=false; history.forEach(e=>{ if(typeof e.d==='number' && e.d>0){ tot+=e.d; any=true; } });
-  document.getElementById('stTime').textContent = any ? fmtDur(tot) : '–';
+  // ---- aggregate per player ----
+  const wins = {P:0, S:0};
+  const quick = {P:null, S:null};      // {d,t}  fastest win
+  const comeback = {P:null, S:null};   // {c,t}  biggest disc deficit overcome
+  let totMs = 0, anyDur = false;
+  history.forEach(e=>{
+    if(e.w==='P' || e.w==='S') wins[e.w]++;
+    // clamp per game so any legacy wall-clock durations can't blow up the total
+    if(typeof e.d==='number' && e.d>0){ totMs += Math.min(e.d, 3600000); anyDur = true; }
+    if(e.w && typeof e.d==='number' && e.d>0){
+      const cur = quick[e.w]; if(!cur || e.d < cur.d) quick[e.w] = {d:e.d, t:e.t};
+    }
+    if(e.w && typeof e.c==='number' && e.c>0){
+      const cur = comeback[e.w]; if(!cur || e.c > cur.c) comeback[e.w] = {c:e.c, t:e.t};
+    }
+  });
+  // longest win streak per player (consecutive wins, chronological; a tie breaks the run)
+  const longest = {P:0, S:0};
+  let curRole=null, curN=0;
+  [...history].sort((a,b)=>a.t-b.t).forEach(e=>{
+    if(e.w==='P' || e.w==='S'){
+      if(e.w===curRole) curN++; else { curRole=e.w; curN=1; }
+      if(curN > longest[e.w]) longest[e.w] = curN;
+    }else{ curRole=null; curN=0; }
+  });
+
+  // ---- leaders (who gets the crown) ----
+  const more  = (a,b)=> a>b ? 'P' : b>a ? 'S' : null;
+  const lower = (a,b,key)=> !a&&!b ? null : !a ? 'S' : !b ? 'P' : a[key]<b[key] ? 'P' : b[key]<a[key] ? 'S' : null;
+  const higher= (a,b,key)=> !a&&!b ? null : !a ? 'S' : !b ? 'P' : a[key]>b[key] ? 'P' : b[key]>a[key] ? 'S' : null;
+  const winsLead   = more(wins.P, wins.S);
+  const streakLead = more(longest.P, longest.S);
+  const quickLead  = lower(quick.P, quick.S, 'd');
+  const cbLead     = higher(comeback.P, comeback.S, 'c');
+
+  // ---- builders ----
+  const dnode = t => { const d=new Date(t);
+    return fmtDate(t)+'<br>'+z2(d.getHours())+':'+z2(d.getMinutes()); };
+  const side = (cls, val, t) =>
+    '<div class="vside '+cls+'"><div class="vval">'+val+'</div>'
+    + (t ? '<div class="vwhen">'+dnode(t)+'</div>' : '') + '</div>';
+  const vstat = (label, pVal, sVal, lead, pT, sT) =>
+    '<div class="vstat">' + side('p', pVal, pT)
+    + '<div class="vcrown l">'+(lead==='P'?CROWN_SVG:'')+'</div>'
+    + '<div class="vslabel">'+label+'</div>'
+    + '<div class="vcrown r">'+(lead==='S'?CROWN_SVG:'')+'</div>'
+    + side('s', sVal, sT) + '</div>';
+  const row = (label, valHTML) =>
+    '<div class="statrow"><div class="statlabel">'+label+'</div><div class="statval">'+valHTML+'</div></div>';
+
+  let sHtml = '';
+  sHtml += vstat('WINS', z2(wins.P), z2(wins.S), winsLead);
+  sHtml += vstat('LONGEST<br>STREAK', longest.P?'x'+longest.P:'–', longest.S?'x'+longest.S:'–', streakLead);
+  sHtml += vstat('QUICKEST<br>WIN',
+    quick.P?fmtDur(quick.P.d):'–', quick.S?fmtDur(quick.S.d):'–', quickLead,
+    quick.P?quick.P.t:null, quick.S?quick.S.t:null);
+  sHtml += vstat('BIGGEST<br>COMEBACK',
+    comeback.P?'+'+comeback.P.c:'–', comeback.S?'+'+comeback.S.c:'–', cbLead,
+    comeback.P?comeback.P.t:null, comeback.S?comeback.S.t:null);
+  document.getElementById('statbody').innerHTML = sHtml;
+
+  document.getElementById('totalbody').innerHTML =
+    row('TOTAL GAMES PLAYED', z2(history.length))
+    + row('TOTAL TIME PLAYED', anyDur ? fmtDur(totMs) : '–');
 }
 function renderScoresPage(){
   renderStats();
-  const wp = history.filter(e=>e.w==='P').length;
-  const ws = history.filter(e=>e.w==='S').length;
-  tallyEl.innerHTML = DISC_SVG.P + ' ' + z2(wp) + ' - ' + z2(ws) + ' ' + DISC_SVG.S;
   if(!history.length){
     histEl.innerHTML = '<div class="hempty">NO GAMES FINISHED YET! GO PLAY!</div>';
     return;
@@ -560,14 +685,24 @@ function renderChat(){
     e.style.whiteSpace='pre-line'; e.textContent='NO MESSAGES YET.\nSAY HI!';
     chatListEl.appendChild(e);
   }else{
-    chat.forEach(mm=>{
+    chat.forEach((mm, i)=>{
       const row = document.createElement('div');
       row.className = 'cmsg '+(mm.role===me?'me':'them')+' '+(mm.role==='P'?'p':'s');
       const bub = document.createElement('div');
-      bub.className = 'cbub' + (/^[♥\s]+$/.test(mm.text) ? ' cheart' : '');
-      bub.textContent = mm.text;                  // textContent => no HTML injection
-      const tm = document.createElement('div'); tm.className='ctime'; tm.textContent = chatTime(mm.t);
-      row.appendChild(bub); row.appendChild(tm);
+      const isHeart = /^[♥\s]+$/.test(mm.text);
+      bub.className = 'cbub' + (isHeart ? ' cheart' : ' pixbox');
+      if(isHeart){
+        const n = (mm.text.match(/♥/g)||[]).length || 1;   // render pixel hearts (count preserved)
+        bub.innerHTML = HEART_SVG.repeat(Math.min(n,8));
+      }else{
+        bub.textContent = mm.text;                  // textContent => no HTML injection
+      }
+      row.appendChild(bub);
+      const prev = chat[i-1];                        // skip timestamp within 1 min of the last message
+      if(!prev || mm.t - prev.t >= 60000){
+        const tm = document.createElement('div'); tm.className='ctime'; tm.textContent = chatTime(mm.t);
+        row.appendChild(tm);
+      }
       chatListEl.appendChild(row);
     });
   }
@@ -603,8 +738,8 @@ function onChatMessage(payload){
   chat = merged; saveChat();
   if(freshFromOther.length){
     theirTyping = 0;
-    sfx.chat();                                    // blip on every new message
-    if(!chatOpen){ unread += freshFromOther.length; if(navigator.vibrate) navigator.vibrate(45); }
+    if(chatOpen){ sfx.chat(); }                    // happy tone if you're already reading
+    else { sfx.chatRemind(); unread += freshFromOther.length; if(navigator.vibrate) navigator.vibrate(45); }
   }
   renderChat();
   if(theyLackOurs && m.from !== myId) publishChat();    // converge both phones
@@ -662,7 +797,10 @@ const sfx = {
   win(){ [523,659,784,1047,784,1047].forEach((f,i)=>beep(f,.12,.12*i)); },
   lose(){ [392,330,262,196].forEach((f,i)=>beep(f,.16,.16*i)); },
   tie(){ beep(440,.15); beep(440,.15,.2); },
-  chat(){ beep(880,.05); beep(1175,.07,.05); }
+  // one happy, round sine tone — played when the chat is open
+  chat(){ beep(1047,.3,0,'sine',.06); },
+  // chat closed: the same tone + two more rising notes = 3-tone "open me!" reminder
+  chatRemind(){ beep(1047,.3,0,'sine',.06); beep(1319,.3,.14,'sine',.055); beep(1568,.36,.28,'sine',.05); }
 };
 
 /* ---------------- DOM ---------------- */
@@ -701,7 +839,7 @@ function fireworks(){
   const cols = ['#c07ce8','#f5a44e','#e8b830','#ff4f7d','#40e860'];
   const parts = [];
   const burst = (cx,cy)=>{ for(let i=0;i<46;i++){ const a=Math.random()*6.283, sp=2+Math.random()*4.5;
-    parts.push({x:cx,y:cy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1,col:cols[(Math.random()*cols.length)|0],sz:3+(Math.random()*3|0)}); } };
+    parts.push({x:cx,y:cy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1,col:cols[(Math.random()*cols.length)|0],sz:6+(Math.random()*6|0)}); } };
   burst(W*0.35, H*0.42); burst(W*0.66, H*0.34);
   setTimeout(()=>burst(W*0.5, H*0.52), 320);
   const start = performance.now();
@@ -761,7 +899,8 @@ function renderHud(){
     overlayEl.classList.remove('hidden');
     if(jingledSeq !== state.seq){
       jingledSeq = state.seq;
-      const dur = (typeof state.t0==='number') ? Date.now()-state.t0 : null;
+      const dur = (typeof state.pt==='number') ? state.pt
+                : (typeof state.t0==='number') ? Date.now()-state.t0 : null;
       const comeback = (winner && trackedFromStart) ? Math.max(0, -worst[winner]) : null;
       addResult(p, s, winner, dur, comeback);
       if(playing && me) (winner===me ? sfx.win : winner ? sfx.lose : sfx.tie)();
@@ -814,11 +953,14 @@ function tryMove(idx){
   const b = state.board.split('');
   b[idx] = me; f.forEach(i => b[i] = me);
   sfx.place(); sfx.flips(f.length);
-  publishState({seq: state.seq+1, board: b.join(''), turn: opp(me), last: idx, passed: null, t0: state.t0});
+  const now = Date.now(), pt = (state.pt||0) + Math.min(now - (state.mt||now), MOVE_CAP);
+  publishState({seq: state.seq+1, board: b.join(''), turn: opp(me), last: idx, passed: null,
+                t0: state.t0, pt, mt: now});
 }
 function doPass(){
+  const now = Date.now(), pt = (state.pt||0) + Math.min(now - (state.mt||now), MOVE_CAP);
   publishState({seq: state.seq+1, board: state.board, turn: opp(state.turn),
-                last: state.last, passed: state.turn, t0: state.t0});
+                last: state.last, passed: state.turn, t0: state.t0, pt, mt: now});
 }
 function scheduleAutoPass(){
   if(!me || rps || isOver(state.board)) return;
@@ -827,7 +969,8 @@ function scheduleAutoPass(){
   passTimer = setTimeout(doPass, state.turn===me ? 1400 : 4000);
 }
 function newGame(starter){
-  publishState({seq: state.seq+1, board: initialBoard(), turn: starter||'P', last:-1, passed:null, t0: Date.now()});
+  const now = Date.now();
+  publishState({seq: state.seq+1, board: initialBoard(), turn: starter||'P', last:-1, passed:null, t0: now, pt:0, mt: now});
 }
 function gameActive(){ return !isOver(state.board) && (count(state.board,'P')+count(state.board,'S')) > 4; }
 function setView(v){ document.body.classList.toggle('playing', v==='game'); renderHome(); }
@@ -986,7 +1129,9 @@ function connect(){
       applyState({seq:m.seq, board:m.board, turn:m.turn,
                   last: typeof m.last==='number' ? m.last : -1,
                   passed: m.passed==='P'||m.passed==='S' ? m.passed : null,
-                  t0: typeof m.t0==='number' ? m.t0 : state.t0},
+                  t0: typeof m.t0==='number' ? m.t0 : state.t0,
+                  pt: typeof m.pt==='number' ? m.pt : state.pt,
+                  mt: typeof m.mt==='number' ? m.mt : state.mt},
                  true, m.from !== myId);
     }catch(e){}
   });
@@ -1025,9 +1170,11 @@ document.getElementById('pickP').addEventListener('click', ()=>pick('P'));
 document.getElementById('pickS').addEventListener('click', ()=>pick('S'));
 
 document.getElementById('btnNew').addEventListener('click', ()=>{ setView('game'); startRps(); });
-document.getElementById('btnAgain').addEventListener('click', ()=>{ setView('game'); startRps(); });
-document.getElementById('btnHome').addEventListener('click', ()=> setView('home'));
 document.getElementById('btnResume').addEventListener('click', ()=> setView('game'));
+document.getElementById('btnStats').addEventListener('click', ()=>{
+  setView('home');
+  document.getElementById('stats').scrollIntoView({behavior:'smooth', block:'start'});
+});
 
 /* ---------------- add-to-home-screen (PWA install) ---------------- */
 let deferredPrompt = null;
