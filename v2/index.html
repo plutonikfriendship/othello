@@ -159,7 +159,7 @@
   /* start page (home) vs game view */
   body:not(.playing) #boardwrap{display:none}
   body:not(.playing) #substatus{display:none}
-  body:not(.playing) .bigscore{display:none}
+  body:not(.playing) .bigscore{visibility:hidden}   /* keep the row's height so avatars stay on the same plane in both views */
   body.playing #stats, body.playing #totals{display:none}
   body:not(.playing) #btnStats{display:none}   /* STATS button only while playing (home already shows stats) */
   /* on the home page the buttons sit right under the player names, above the stats */
@@ -167,6 +167,21 @@
   #btnResume{display:none}
   #btnResume.on{display:inline-block}
   body.playing #btnResume{display:none}
+
+  /* ---- player avatars (plum otter / orange donkey) ---- */
+  #avatars{position:relative;height:66px;margin:2px 0 8px;pointer-events:none;
+    width:calc(8*var(--cell) + 18px);max-width:94vw}
+  body:not(.playing) #avatars{order:-2}   /* on home: sit right under the names, above the NEW GAME button */
+  .av{position:absolute;bottom:0;transition:transform 1.4s linear;transform:translateX(0)}
+  .av img{display:block;height:58px;width:auto;image-rendering:pixelated;
+    animation:avbob 1.1s steps(2) infinite}
+  #avatars.walking .av img{animation:avbob .3s steps(2) infinite}  /* quicker hop while walking in */
+  .av img.cheer{animation:avcheer .6s steps(4)}                    /* excited jump when that player moves */
+  #avPlum{left:7%}
+  #avSanna{right:7%}
+  @keyframes avbob{50%{transform:translateY(-2px)}}
+  @keyframes avcheer{0%,100%{transform:translateY(0)}
+    30%{transform:translateY(-14px) scaleY(1.07)}60%{transform:translateY(0) scaleY(.9)}}
 
   /* stats panel (home only) */
   #stats,#totals{width:calc(8*var(--cell) + 18px);max-width:94vw;display:flex;flex-direction:column;gap:7px;margin-top:18px}
@@ -322,6 +337,11 @@
   <div class="bigscore plum" id="scoreP">02</div>
   <div></div>
   <div class="bigscore orange" id="scoreS">02</div>
+</div>
+
+<div id="avatars">
+  <div class="av" id="avPlum"><img src="art/plum.png" alt="Mr.Plum"></div>
+  <div class="av" id="avSanna"><img src="art/sanna.png" alt="Sannamy"></div>
 </div>
 
 <section id="stats">
@@ -565,6 +585,18 @@ function fmtDur(ms){
   if(s < 3600) return Math.floor(s/60)+':'+z2(s%60);
   return Math.floor(s/3600)+'h '+Math.floor((s%3600)/60)+'m';
 }
+// Games recorded before timing was tracked have no duration, so they were excluded from
+// "quickest win" and "total time played". Backfill them: 5:00 each, and the very first game
+// 4:59 so it registers as the quickest. Idempotent — only touches games still missing a time.
+function backfillDurations(){
+  const untimed = history.filter(e => !(typeof e.d==='number' && e.d>0));
+  if(!untimed.length) return false;
+  untimed.forEach(e => { e.d = 300000; });                  // 5:00
+  const earliest = history.reduce((a,b)=> a.t<=b.t ? a : b, history[0]);
+  if(untimed.indexOf(earliest) >= 0) earliest.d = 299000;   // first game = 4:59 → quickest win
+  saveHist(); renderScoresPage(); publishHist();
+  return true;
+}
 function onHistMessage(payload){
   try{
     const m = JSON.parse(payload.toString());
@@ -576,6 +608,7 @@ function onHistMessage(payload){
     const theyLackOurs = merged.length > incoming.length;
     history = merged;
     saveHist(); renderScoresPage();
+    backfillDurations();                                // patch any legacy games that arrived from the other phone
     if(theyLackOurs && m.from !== myId) publishHist();  // converge both phones
   }catch(e){}
 }
@@ -944,6 +977,12 @@ function applyState(ns, animate, remote){
     worst.P = Math.min(worst.P, cp-cs); worst.S = Math.min(worst.S, cs-cp); }
   renderBoard(prev, animate);
   renderHud();
+  // the player who just placed a disc cheers (board[last] is the mover's colour)
+  if(document.body.classList.contains('playing') && state.last>=0 && cheeredSeq!==state.seq){
+    cheeredSeq = state.seq;
+    const mover = state.board[state.last];
+    if(mover==='P'||mover==='S') cheerAvatar(mover);
+  }
   if(remote && me && !isOver(state.board)){
     let changed = 0;
     for(let i=0;i<64;i++) if(prev[i]!==state.board[i] && prev[i]!=='.') changed++;
@@ -993,7 +1032,35 @@ function newGame(starter){
   publishState({seq: state.seq+1, board: initialBoard(), turn: starter||'P', last:-1, passed:null, t0: now, pt:0, mt: now});
 }
 function gameActive(){ return !isOver(state.board) && (count(state.board,'P')+count(state.board,'S')) > 4; }
-function setView(v){ document.body.classList.toggle('playing', v==='game'); renderHome(); }
+function setView(v){ document.body.classList.toggle('playing', v==='game'); renderHome(); updateAvatars(); }
+
+/* ---------- avatars: rest under the names (home) / walk to centre (game) ---------- */
+const avPlumEl  = document.getElementById('avPlum');
+const avSannaEl = document.getElementById('avSanna');
+let cheeredSeq = -1;
+function cheerAvatar(color){
+  const img = (color==='P'?avPlumEl:avSannaEl).querySelector('img');
+  img.classList.remove('cheer'); void img.offsetWidth; img.classList.add('cheer');
+  setTimeout(()=>img.classList.remove('cheer'), 650);
+}
+let avWalkTimer = null;
+function updateAvatars(){
+  const wrap = document.getElementById('avatars');
+  avPlumEl.style.transform = 'translateX(0)';      // back to rest, under the names
+  avSannaEl.style.transform = 'translateX(0)';
+  if(!document.body.classList.contains('playing')) return;
+  void wrap.offsetWidth;                            // reflow so the move animates from rest
+  const r = wrap.getBoundingClientRect();
+  const a = avPlumEl.getBoundingClientRect();
+  const b = avSannaEl.getBoundingClientRect();
+  const centerX = r.left + r.width/2, gap = 6;
+  avPlumEl.style.transform  = 'translateX(' + (centerX - gap/2 - a.right) + 'px)';
+  avSannaEl.style.transform = 'translateX(' + (centerX + gap/2 - b.left)  + 'px)';
+  wrap.classList.add('walking');
+  clearTimeout(avWalkTimer);
+  avWalkTimer = setTimeout(()=>wrap.classList.remove('walking'), 1450);
+}
+window.addEventListener('resize', ()=>{ if(document.body.classList.contains('playing')) updateAvatars(); });
 function renderHome(){
   document.getElementById('btnResume').classList.toggle('on',
     !document.body.classList.contains('playing') && gameActive());
@@ -1224,6 +1291,7 @@ document.getElementById('installno').addEventListener('click', ()=>{
 if(!me) selectEl.classList.remove('hidden');
 chatBtn.classList.toggle('show', !!me);
 setView('home');                 // always open on the start page (board hidden)
+backfillDurations();             // give pre-timing games a duration so they count in the stats
 renderBoard(null,false); renderHud(); renderScoresPage(); renderChat(); updatePresence(); scheduleAutoPass();
 if('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual';
 
